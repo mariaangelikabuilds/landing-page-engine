@@ -1,0 +1,19 @@
+{
+  "name": "landing-page-engine",
+  "version": "0.1.0",
+  "description": "Brief in, QA'd landing page out. Claude drafts against a versioned rules file, deterministic checks decide pass/fail.",
+  "type": "module",
+  "bin": {
+    "page-engine": "./engine.mjs"
+  },
+  "scripts": {
+    "run-demo": "node engine.mjs run briefs/demo-brief.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axe-core": "^4.11.0",
+    "playwright": "^1.56.0",
+    "zod": "^3.25.0"
+  }
+}
