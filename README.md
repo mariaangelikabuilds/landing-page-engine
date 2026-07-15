@@ -30,6 +30,13 @@ cheap to check exactly, so a model should never vote on them. Judgment calls
 (is this claim actually in the brief?) are where review tokens are worth spending,
 and where a violations list with rule IDs beats a vibes paragraph.
 
+The second lesson came from the same run: the passing draft had em dashes in its
+copy, the model emitting the industry's tells even with a rules file in its prompt.
+So rules 1.1.0 promoted copy tells to a gate check: an exact scan of the rendered
+text for dashes and banned vocabulary. Re-checked under the new gate, the first
+draft correctly fails (the ledger keeps both verdicts); the next draft came back
+clean and passed 6/6.
+
 ## Architecture
 
 ```
