@@ -26,12 +26,14 @@ export async function qaRun(runDir) {
     await linkAuditCheck(pageHtml),
     ...(await renderChecks(pageHtml, runDir)),
   ];
+  // Progress goes to stderr: mcp-server.mjs runs this over stdio, where
+  // stdout carries the JSON-RPC stream and must stay clean.
   for (const check of deterministicChecks) {
-    process.stdout.write(`  ${check.pass ? "pass" : "FAIL"}  ${check.name}\n`);
+    process.stderr.write(`  ${check.pass ? "pass" : "FAIL"}  ${check.name}\n`);
   }
 
   const claudeReview = await rulesReview(pageHtml, runRecord.brief);
-  process.stdout.write(
+  process.stderr.write(
     `  review: ${claudeReview.violationList.length} rule finding(s), advisory\n`,
   );
 
