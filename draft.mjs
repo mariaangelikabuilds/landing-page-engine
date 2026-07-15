@@ -31,13 +31,17 @@ function runSlug(brandName) {
   return `${stamp}-${slug}`;
 }
 
+const rulesVersion = pageRules.match(/Version (\d+\.\d+\.\d+)/)?.[1] ?? "unknown";
+
 const draftSystemPrompt = `You are the drafting stage of a landing page engine.
 You write one complete, self-contained HTML landing page and nothing else.
 
-Your output must obey every rule in the rules file below. The page will be
-mechanically checked afterwards (single-file scan, link audit, render at 1440
-and 375, axe-core) and reviewed against these same rules, so violations are
-not a style opinion, they are a failed build.
+Your output must obey every rule in the rules file below (version ${rulesVersion}).
+The page will be mechanically checked afterwards (single-file scan, link audit,
+render at 1440 and 375, axe-core, and an exact scan of the rendered copy for
+the copy-tells rule), then reviewed against these same rules. A single em dash,
+en dash, or banned word in the visible copy fails the build outright, so write
+copy that never needs the gate's forgiveness: use periods, commas, and colons.
 
 Output only the HTML document. No markdown fences, no commentary before or
 after the doctype.

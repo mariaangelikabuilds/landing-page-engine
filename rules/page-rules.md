@@ -1,6 +1,6 @@
 # Page Rules
 
-Version 1.0.0 (2026-07-16)
+Version 1.1.0 (2026-07-16)
 
 Every drafted page is written against this file, and the review pass cites these IDs
 when it flags a violation. Rules marked **gate** are also enforced by deterministic
@@ -28,8 +28,11 @@ checks in `qa.mjs`; the model review is advisory and never decides pass/fail on 
   "Email Marco"), never generic labels like "Get Started" or "Learn More". Every
   `href` resolves to a real destination from the brief (a URL, `mailto:`, or `tel:`).
   No dead `#` links.
-- `banned-vocabulary`: The page never uses: seamless, robust, leverage, elevate,
-  unlock, transform, streamline, delve, comprehensive, "next level", "supercharge".
+- `copy-tells` (gate): No em or en dashes anywhere in page copy; use a period,
+  comma, or colon instead. None of these words: leverage, seamless, robust,
+  comprehensive, streamline, elevate, unlock, transform, delve, cutting-edge,
+  game-changer, empower. No "In today's ..." openers. Enforced by an exact scan
+  of the rendered text; a single hit fails the build.
 
 ## Structure
 
@@ -62,4 +65,8 @@ checks in `qa.mjs`; the model review is advisory and never decides pass/fail on 
 
 ## Change log
 
+- 1.1.0: `banned-vocabulary` replaced by `copy-tells` and promoted to a gate:
+  dashes, an expanded banned word list, and "In today's" openers are now
+  exact-scanned in QA. Prompted by the first real run, whose draft shipped em
+  dashes in the page copy.
 - 1.0.0: initial rule set.

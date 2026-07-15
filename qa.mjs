@@ -24,7 +24,7 @@ export async function qaRun(runDir) {
     documentCheck(pageHtml),
     selfContainmentCheck(pageHtml, allowedFontHosts),
     await linkAuditCheck(pageHtml),
-    ...(await renderChecks(pageHtml, runDir)),
+    ...(await renderChecks(runDir)),
   ];
   // Progress goes to stderr: mcp-server.mjs runs this over stdio, where
   // stdout carries the JSON-RPC stream and must stay clean.
@@ -139,12 +139,16 @@ async function probeLink(linkUrl) {
   return 599;
 }
 
-async function renderChecks(pageHtml, runDir) {
+async function renderChecks(runDir) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: DESKTOP });
     await page.goto(pathToFileURL(join(runDir, "page.html")).href);
     await page.screenshot({ path: join(runDir, "page-1440.png"), fullPage: true });
+
+    // Rendered text, not source: copy tells are judged on what a reader sees,
+    // so markup, CSS, and attribute values stay out of the scan.
+    const renderedCopy = await page.evaluate(() => document.body.innerText);
 
     await page.addScriptTag({ path: axeSource });
     const axeFindings = await page.evaluate(() => window.axe.run(document));
@@ -175,10 +179,40 @@ async function renderChecks(pageHtml, runDir) {
               .join("; ")
           : `ok (${axeFindings.passes.length} rules passed)`,
       },
+      copyTellsCheck(renderedCopy),
     ];
   } finally {
     await browser.close();
   }
+}
+
+const BANNED_COPY_WORDS = [
+  "leverage", "seamless", "robust", "comprehensive", "streamline", "elevate",
+  "unlock", "transform", "delve", "cutting-edge", "game-changer", "empower",
+];
+
+function copyTellsCheck(renderedCopy) {
+  const tellPatterns = [
+    /[\u2013\u2014]/g,
+    new RegExp(`\\b(?:${BANNED_COPY_WORDS.join("|")})\\b`, "gi"),
+    /\bin today[’']s\b/gi,
+  ];
+  const tellHits = [];
+  for (const pattern of tellPatterns) {
+    for (const hit of renderedCopy.matchAll(pattern)) {
+      const excerpt = renderedCopy
+        .slice(Math.max(0, hit.index - 30), hit.index + hit[0].length + 30)
+        .replace(/\s+/g, " ")
+        .trim();
+      tellHits.push(`"${hit[0]}" in "...${excerpt}..."`);
+    }
+  }
+  return {
+    name: "copy tells (dashes, banned vocabulary)",
+    rule: "copy-tells",
+    pass: tellHits.length === 0,
+    details: tellHits.length ? tellHits.join(" | ") : "ok",
+  };
 }
 
 const reviewSchema = {

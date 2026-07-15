@@ -38,27 +38,29 @@ function bundleStage(runDir) {
   return ledgerLine;
 }
 
+// exitCode, never process.exit(): a hard exit races Playwright's pipe
+// teardown on Windows and crashes libuv instead of returning 1.
 try {
   if (!target) {
     say(usage);
-    process.exit(command ? 1 : 0);
+    process.exitCode = command ? 1 : 0;
   } else if (command === "run") {
     const runDir = await draftStage(target);
     await qaStage(runDir);
     const ledgerLine = bundleStage(runDir);
-    process.exit(ledgerLine.verdict === "pass" ? 0 : 1);
+    process.exitCode = ledgerLine.verdict === "pass" ? 0 : 1;
   } else if (command === "draft") {
     await draftStage(target);
   } else if (command === "qa") {
     const qaReport = await qaStage(target);
-    process.exit(qaReport.verdict === "pass" ? 0 : 1);
+    process.exitCode = qaReport.verdict === "pass" ? 0 : 1;
   } else if (command === "bundle") {
     bundleStage(target);
   } else {
     say(usage);
-    process.exit(1);
+    process.exitCode = 1;
   }
 } catch (failure) {
   process.stderr.write(`engine: ${failure.message}\n`);
-  process.exit(1);
+  process.exitCode = 1;
 }
