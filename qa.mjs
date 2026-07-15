@@ -1,0 +1,242 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { chromium } from "playwright";
+import { reviewCompletion, usageCostUsd } from "./claude.mjs";
+
+const pageRules = readFileSync(
+  new URL("rules/page-rules.md", import.meta.url),
+  "utf8",
+);
+const axeSource = fileURLToPath(
+  new URL("node_modules/axe-core/axe.min.js", import.meta.url),
+);
+
+const DESKTOP = { width: 1440, height: 900 };
+const PHONE = { width: 375, height: 812 };
+
+export async function qaRun(runDir) {
+  const pageHtml = readFileSync(join(runDir, "page.html"), "utf8");
+  const runRecord = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
+  const allowedFontHosts = fontHosts(runRecord.brief.fontUrl);
+
+  const deterministicChecks = [
+    documentCheck(pageHtml),
+    selfContainmentCheck(pageHtml, allowedFontHosts),
+    await linkAuditCheck(pageHtml),
+    ...(await renderChecks(pageHtml, runDir)),
+  ];
+  for (const check of deterministicChecks) {
+    process.stdout.write(`  ${check.pass ? "pass" : "FAIL"}  ${check.name}\n`);
+  }
+
+  const claudeReview = await rulesReview(pageHtml, runRecord.brief);
+  process.stdout.write(
+    `  review: ${claudeReview.violationList.length} rule finding(s), advisory\n`,
+  );
+
+  const qaReport = {
+    runDir,
+    checkedAt: new Date().toISOString(),
+    verdict: deterministicChecks.every((check) => check.pass) ? "pass" : "fail",
+    deterministicChecks,
+    claudeReview,
+  };
+  writeFileSync(join(runDir, "qa-report.json"), JSON.stringify(qaReport, null, 2));
+  return qaReport;
+}
+
+function fontHosts(fontUrl) {
+  return fontUrl ? [new URL(fontUrl).host] : [];
+}
+
+function documentCheck(pageHtml) {
+  const missing = [
+    [/^\s*<!doctype html>/i, "doctype"],
+    [/<html[^>]+lang\s*=/i, "html lang attribute"],
+    [/<title>[^<]+<\/title>/i, "title"],
+    [/<meta[^>]+name\s*=\s*["']viewport["']/i, "viewport meta"],
+    [/<\/html>\s*$/i, "closing html tag"],
+  ]
+    .filter(([pattern]) => !pattern.test(pageHtml))
+    .map(([, label]) => label);
+  return {
+    name: "document structure",
+    rule: "valid-document",
+    pass: missing.length === 0,
+    details: missing.length ? `missing: ${missing.join(", ")}` : "ok",
+  };
+}
+
+// Asset references (src, srcset, link href, css url(), @import) must stay local.
+// Anchor hrefs are navigation, not assets; the link audit covers those.
+function selfContainmentCheck(pageHtml, allowedFontHosts) {
+  const offenses = [];
+  if (/<script\b/i.test(pageHtml)) offenses.push("script tag (page must ship no JS)");
+
+  const assetPatterns = [
+    /\ssrc\s*=\s*["']([^"']+)["']/gi,
+    /\ssrcset\s*=\s*["']([^"']+)["']/gi,
+    /<link\b[^>]*\bhref\s*=\s*["']([^"']+)["']/gi,
+    /url\(\s*["']?(https?:[^"')\s]+)/gi,
+    /@import\s+["']?(https?:[^"')\s;]+)/gi,
+  ];
+  for (const pattern of assetPatterns) {
+    for (const hit of pageHtml.matchAll(pattern)) {
+      const assetUrl = hit[1];
+      if (!/^https?:/i.test(assetUrl)) continue;
+      if (!allowedFontHosts.includes(new URL(assetUrl).host)) {
+        offenses.push(assetUrl);
+      }
+    }
+  }
+  return {
+    name: "single file, no external assets",
+    rule: "single-file",
+    pass: offenses.length === 0,
+    details: offenses.length ? offenses.join("; ") : "ok",
+  };
+}
+
+async function linkAuditCheck(pageHtml) {
+  const anchorUrls = [
+    ...new Set(
+      [...pageHtml.matchAll(/<a\b[^>]*\bhref\s*=\s*["']([^"']+)["']/gi)]
+        .map((hit) => hit[1])
+        .filter((href) => /^https?:/i.test(href)),
+    ),
+  ];
+  const brokenLinks = [];
+  for (const linkUrl of anchorUrls) {
+    const status = await probeLink(linkUrl);
+    if (status >= 400) brokenLinks.push(`${linkUrl} (${status})`);
+  }
+  return {
+    name: `link audit (${anchorUrls.length} external link${anchorUrls.length === 1 ? "" : "s"})`,
+    rule: "cta-specific",
+    pass: brokenLinks.length === 0,
+    details: brokenLinks.length ? brokenLinks.join("; ") : "ok",
+  };
+}
+
+async function probeLink(linkUrl) {
+  for (const method of ["HEAD", "GET"]) {
+    try {
+      const answer = await fetch(linkUrl, {
+        method,
+        redirect: "follow",
+        signal: AbortSignal.timeout(10_000),
+      });
+      // Some servers reject HEAD outright; only then is GET worth the bytes.
+      if (method === "HEAD" && (answer.status === 405 || answer.status === 403)) continue;
+      return answer.status;
+    } catch {
+      if (method === "GET") return 599;
+    }
+  }
+  return 599;
+}
+
+async function renderChecks(pageHtml, runDir) {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: DESKTOP });
+    await page.goto(pathToFileURL(join(runDir, "page.html")).href);
+    await page.screenshot({ path: join(runDir, "page-1440.png"), fullPage: true });
+
+    await page.addScriptTag({ path: axeSource });
+    const axeFindings = await page.evaluate(() => window.axe.run(document));
+    const blockingFindings = axeFindings.violations.filter((violation) =>
+      ["serious", "critical"].includes(violation.impact),
+    );
+
+    await page.setViewportSize(PHONE);
+    await page.screenshot({ path: join(runDir, "page-375.png"), fullPage: true });
+    const overflowPx = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+
+    return [
+      {
+        name: "no horizontal overflow at 375px",
+        rule: "responsive",
+        pass: overflowPx <= 0,
+        details: overflowPx > 0 ? `page is ${overflowPx}px too wide` : "ok",
+      },
+      {
+        name: "axe-core, no serious or critical violations",
+        rule: "semantic-html / contrast-aa",
+        pass: blockingFindings.length === 0,
+        details: blockingFindings.length
+          ? blockingFindings
+              .map((violation) => `${violation.id}: ${violation.nodes.length} node(s)`)
+              .join("; ")
+          : `ok (${axeFindings.passes.length} rules passed)`,
+      },
+    ];
+  } finally {
+    await browser.close();
+  }
+}
+
+const reviewSchema = {
+  type: "object",
+  properties: {
+    violations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          rule: { type: "string" },
+          severity: { type: "string", enum: ["minor", "serious"] },
+          excerpt: { type: "string" },
+          reason: { type: "string" },
+        },
+        required: ["rule", "severity", "excerpt", "reason"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["violations"],
+  additionalProperties: false,
+};
+
+const reviewSystemPrompt = `You review a drafted landing page against the rules
+file below. Report only genuine violations, each citing the rule id it breaks,
+a short excerpt of the offending markup or copy, and one sentence of reasoning.
+An empty list is a valid and common answer. Do not invent violations to look
+thorough, and do not flag things the rules do not cover.
+
+<page-rules>
+${pageRules}
+</page-rules>`;
+
+async function rulesReview(pageHtml, briefBody) {
+  const userPrompt = `Brief:\n${JSON.stringify(briefBody, null, 2)}\n\nPage:\n${pageHtml}`;
+  const { reviewText, usage } = await reviewCompletion(
+    reviewSystemPrompt,
+    userPrompt,
+    reviewSchema,
+  );
+  return {
+    violationList: validatedViolations(JSON.parse(reviewText)),
+    usage,
+    costUsd: usageCostUsd(usage),
+  };
+}
+
+// The schema is enforced server side, but the gate re-checks the shape before
+// trusting it: a refusal or truncation must fail loudly here, not downstream.
+function validatedViolations(reviewBody) {
+  if (!Array.isArray(reviewBody?.violations)) {
+    throw new Error("review output missing violations array");
+  }
+  for (const finding of reviewBody.violations) {
+    for (const field of ["rule", "severity", "excerpt", "reason"]) {
+      if (typeof finding[field] !== "string") {
+        throw new Error(`review finding missing string field: ${field}`);
+      }
+    }
+  }
+  return reviewBody.violations;
+}
