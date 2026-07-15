@@ -57,8 +57,13 @@ export async function reviewCompletion(systemPrompt, userPrompt, reviewSchema) {
   if (reviewMessage.stop_reason === "refusal") {
     throw new Error("Review request was refused by the model");
   }
-  const reviewText = reviewMessage.content.find(
+  const reviewBlock = reviewMessage.content.find(
     (block) => block.type === "text",
-  ).text;
-  return { reviewText, usage: reviewMessage.usage };
+  );
+  if (!reviewBlock) {
+    throw new Error(
+      `review returned no text block (stop_reason: ${reviewMessage.stop_reason})`,
+    );
+  }
+  return { reviewText: reviewBlock.text, usage: reviewMessage.usage };
 }

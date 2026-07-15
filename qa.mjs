@@ -32,10 +32,18 @@ export async function qaRun(runDir) {
     process.stderr.write(`  ${check.pass ? "pass" : "FAIL"}  ${check.name}\n`);
   }
 
-  const claudeReview = await rulesReview(pageHtml, runRecord.brief);
-  process.stderr.write(
-    `  review: ${claudeReview.violationList.length} rule finding(s), advisory\n`,
-  );
+  // The review is advisory by design; if it errors, the run keeps its
+  // deterministic verdict and the report carries the error instead of findings.
+  let claudeReview;
+  try {
+    claudeReview = await rulesReview(pageHtml, runRecord.brief);
+    process.stderr.write(
+      `  review: ${claudeReview.violationList.length} rule finding(s), advisory\n`,
+    );
+  } catch (reviewError) {
+    claudeReview = { violationList: [], errored: reviewError.message, costUsd: 0 };
+    process.stderr.write(`  review: errored, advisory skipped (${reviewError.message})\n`);
+  }
 
   const qaReport = {
     runDir,

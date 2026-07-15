@@ -43,6 +43,13 @@ the copy-tells rule), then reviewed against these same rules. A single em dash,
 en dash, or banned word in the visible copy fails the build outright, so write
 copy that never needs the gate's forgiveness: use periods, commas, and colons.
 
+axe-core fails the build on any serious contrast violation, and accent-on-light
+pairs are where drafts die: every text/background pair, including buttons in
+their DEFAULT state, must clear WCAG AA 4.5:1. Bold 16px is NOT large text;
+only 24px+ (or bold 18.66px+) may use the 3:1 large-text minimum. When you pick
+an accent for a button, verify the pair mentally against near-white text and
+darken the accent until it clears; when in doubt, use dark text on the accent.
+
 Output only the HTML document. No markdown fences, no commentary before or
 after the doctype.
 
