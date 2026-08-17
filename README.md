@@ -54,7 +54,7 @@ API key, no network, and no cost. That is why CI can run it on fork pull request
 secrets are unavailable. `evals/SCORECARD.md` and `evals/results.json` are rewritten on
 every run and CI fails on a diff, so the numbers below cannot drift from the code.
 
-**6/6 caught, 0 collateral failures, 0 false fails on the clean page, 4.4 s.**
+**8/8 caught, 0 collateral failures, 0 false fails on the clean page, 6.0 s.**
 
 The first run scored 5/6, and the miss was the point. A 2000px element on a 375px viewport
 did not fail the `responsive` check, because the golden page sets `overflow-x: hidden` on
@@ -69,10 +69,21 @@ screenshot looked correct, and the ledger recorded a clean run. `responsive` now
 The golden page still passes all six afterwards, so the fix caught a real defeat without
 over-firing. Full record in `evals/history.md`.
 
-The suite also names what it does not catch. The golden page has a `tel:` href whose digits
-disagree with its own link text; no deterministic check compares those, and the advisory
-review pass is what caught it. That sits in the scorecard as a known blind spot rather than
-being quietly fixed.
+The second finding came from running the engine again on 2026-08-17. The brief's phone number
+is +63 2 8845 2210, and the draft wrote `tel:` hrefs missing one digit on two separate runs, in
+different positions, while the visible label read correctly both times. The advisory review
+caught the first and missed the second, so the model layer was not dependable for it. Comparing
+digits is exact, so it became the `contact-integrity` gate check.
+
+Then the next run satisfied the digit comparison by pasting the display string into the href,
+spaces and all, which is not a valid tel URI. The fix had changed the failure mode rather than
+removing it. The check now rejects whitespace too, both cases are mutations in the suite, and
+the run after that came back clean at 7/7.
+
+The suite still names what it does not catch. Nothing deterministic can decide whether a
+sentence is supported by the brief: an earlier draft invented "the keys stay with you" and
+"no term, no penalty", and that is the advisory pass's job. The gate also has no opinion about
+whether a page uses its canvas, since it measures overflow, not composition.
 
 ## Architecture
 
@@ -86,9 +97,11 @@ brief (json or md)
  qa.mjs
       |── deterministic gate ── decides pass/fail
       |     1. document structure + single-file scan   (regex + URL parse, no DOM dep)
-      |     2. link audit on external hrefs            (native fetch, HEAD then GET)
-      |     3. Playwright render at 1440 and 375       (fails on horizontal overflow)
-      |     4. axe-core injected into the same page    (fails on serious/critical)
+      |     2. contact integrity on tel: and mailto:   (digits vs label vs brief)
+      |     3. link audit on external hrefs            (native fetch, HEAD then GET)
+      |     4. Playwright render at 1440 and 375       (fails on horizontal overflow)
+      |     5. axe-core injected into the same page    (fails on serious/critical)
+      |     6. copy tells on the rendered text         (dashes, banned vocabulary)
       |
       |── Claude review ── advisory ──> violations[] citing rules/page-rules.md IDs
       v

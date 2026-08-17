@@ -1,6 +1,6 @@
 # Page Rules
 
-Version 1.1.0 (2026-07-16)
+Version 1.2.0 (2026-08-17)
 
 Every drafted page is written against this file, and the review pass cites these IDs
 when it flags a violation. Rules marked **gate** are also enforced by deterministic
@@ -28,6 +28,13 @@ checks in `qa.mjs`; the model review is advisory and never decides pass/fail on 
   "Email Marco"), never generic labels like "Get Started" or "Learn More". Every
   `href` resolves to a real destination from the brief (a URL, `mailto:`, or `tel:`).
   No dead `#` links.
+- `contact-integrity` (gate): A `tel:` or `mailto:` href must carry exactly the contact
+  detail from the brief, and must agree with its own visible label. Copy the number and
+  the address character by character; do not retype them from memory while writing the
+  markup. A label that reads correctly over an href missing one digit is the failure
+  this rule exists for. The `tel:` href itself carries no spaces: write
+  `tel:+63288452210`, not `tel:+63 2 8845 2210`. Spaces are not valid separators in a
+  tel URI even though the visible label should keep them.
 - `copy-tells` (gate): No em or en dashes anywhere in page copy; use a period,
   comma, or colon instead. None of these words: leverage, seamless, robust,
   comprehensive, streamline, elevate, unlock, transform, delve, cutting-edge,
@@ -65,6 +72,10 @@ checks in `qa.mjs`; the model review is advisory and never decides pass/fail on 
 
 ## Change log
 
+- 1.2.0: `contact-integrity` added as a gate. Two runs of the same brief produced a
+  `tel:` href missing one digit, in different positions, while the visible label read
+  correctly both times. The advisory review caught the first and missed the second, so
+  the comparison moved into the deciding half where it is exact.
 - 1.1.0: `banned-vocabulary` replaced by `copy-tells` and promoted to a gate:
   dashes, an expanded banned word list, and "In today's" openers are now
   exact-scanned in QA. Prompted by the first real run, whose draft shipped em

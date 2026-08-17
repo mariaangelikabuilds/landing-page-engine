@@ -68,6 +68,29 @@ export const MUTATIONS = [
         "<p>Backups run nightly — restores are tested monthly.</p>",
       ),
   },
+  {
+    id: "tel-digit-drop",
+    rule: "contact-integrity",
+    defect: "one digit removed from a tel: href while its label still reads correctly",
+    apply: (pageHtml) => {
+      if (!pageHtml.includes("tel:+63288452210")) {
+        throw new Error("fixture has no known tel: href to damage");
+      }
+      return pageHtml.replace("tel:+63288452210", "tel:+6328845221");
+    },
+  },
+  {
+    id: "tel-space-separator",
+    rule: "contact-integrity",
+    defect:
+      "a tel: href written with spaces, so the digits match but the URI is malformed",
+    apply: (pageHtml) => {
+      if (!pageHtml.includes("tel:+63288452210")) {
+        throw new Error("fixture has no known tel: href to damage");
+      }
+      return pageHtml.replace("tel:+63288452210", "tel:+63 2 8845 2210");
+    },
+  },
 ];
 
 // Defects the deterministic gate is known not to catch. These are not scored;
@@ -76,11 +99,17 @@ export const MUTATIONS = [
 // the advisory review pass caught it on the original run, the checks did not.
 export const KNOWN_BLIND_SPOTS = [
   {
-    id: "tel-href-digit-mismatch",
+    id: "unsourced-copy-claims",
     defect:
-      'tel: href digits disagree with the link text (href "+6328845220" vs text "+63 2 8845 2210")',
+      "a claim in the copy that appears nowhere in the brief, such as the drafter's invented \"the keys stay with you\" and \"no term, no penalty\"",
     whyMissed:
-      "the link audit only probes http(s) anchors; no check compares a tel: href against its own label",
-    caughtBy: "the advisory review pass, on the 2026-07-15T19-21-30 run",
+      "checking a sentence against a brief is a judgement, not a comparison; nothing deterministic can decide it",
+    caughtBy: "the advisory review pass, which is why that pass exists",
   },
 ];
+
+// Graduated out of the list above: the tel: href digit mismatch. It was a blind spot
+// until 2026-08-17, when a second run of the same brief produced the same defect in a
+// different position and the advisory review missed it that time. Two occurrences and
+// one miss made the case that a digit comparison belongs in the deciding half. It is
+// now the contact-integrity check, with tel-digit-drop as its mutation.

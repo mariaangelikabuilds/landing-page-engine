@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "checkCount": 6,
+    "checkCount": 7,
     "falseFails": [],
     "clean": true
   },
@@ -46,16 +46,30 @@
       "defect": "an em dash in rendered copy",
       "detected": true,
       "collateral": []
+    },
+    {
+      "id": "tel-digit-drop",
+      "rule": "contact-integrity",
+      "defect": "one digit removed from a tel: href while its label still reads correctly",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "tel-space-separator",
+      "rule": "contact-integrity",
+      "defect": "a tel: href written with spaces, so the digits match but the URI is malformed",
+      "detected": true,
+      "collateral": []
     }
   ],
   "detectionRate": 100,
   "collateralCount": 0,
   "knownBlindSpots": [
     {
-      "id": "tel-href-digit-mismatch",
-      "defect": "tel: href digits disagree with the link text (href \"+6328845220\" vs text \"+63 2 8845 2210\")",
-      "whyMissed": "the link audit only probes http(s) anchors; no check compares a tel: href against its own label",
-      "caughtBy": "the advisory review pass, on the 2026-07-15T19-21-30 run"
+      "id": "unsourced-copy-claims",
+      "defect": "a claim in the copy that appears nowhere in the brief, such as the drafter's invented \"the keys stay with you\" and \"no term, no penalty\"",
+      "whyMissed": "checking a sentence against a brief is a judgement, not a comparison; nothing deterministic can decide it",
+      "caughtBy": "the advisory review pass, which is why that pass exists"
     }
   ]
 }

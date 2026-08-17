@@ -6,7 +6,7 @@ so this file and the code cannot drift apart.
 The golden page is a real run that passed 6/6 (`2026-07-15T19-21-30-salcedo-systems`).
 Each mutation injects exactly one defect into it and names the check that should fire.
 
-**Detection: 6/6 (100%).
+**Detection: 8/8 (100%).
 False fails on the clean page: 0.
 Collateral failures across all mutants: 0.**
 
@@ -18,6 +18,8 @@ Collateral failures across all mutants: 0.**
 | `fixed-width-overflow` | responsive | caught | none |
 | `low-contrast-text` | semantic-html / contrast-aa | caught | none |
 | `copy-tell-em-dash` | copy-tells | caught | none |
+| `tel-digit-drop` | contact-integrity | caught | none |
+| `tel-space-separator` | contact-integrity | caught | none |
 
 "Also failed" measures whether a defect trips checks it has no business tripping.
 Zero means each check is independent, so a failure names its own cause.
@@ -26,8 +28,8 @@ Zero means each check is independent, so a failure names its own cause.
 
 Not scored. Recorded so this states the gate's edges rather than implying it has none.
 
-- **tel-href-digit-mismatch**: tel: href digits disagree with the link text (href "+6328845220" vs text "+63 2 8845 2210")
-  Missed because the link audit only probes http(s) anchors; no check compares a tel: href against its own label. Caught instead by the advisory review pass, on the 2026-07-15T19-21-30 run.
+- **unsourced-copy-claims**: a claim in the copy that appears nowhere in the brief, such as the drafter's invented "the keys stay with you" and "no term, no penalty"
+  Missed because checking a sentence against a brief is a judgement, not a comparison; nothing deterministic can decide it. Caught instead by the advisory review pass, which is why that pass exists.
 
 ## Method
 

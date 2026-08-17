@@ -26,6 +26,7 @@ export async function deterministicGate(runDir) {
   return [
     documentCheck(pageHtml),
     selfContainmentCheck(pageHtml, allowedFontHosts),
+    contactIntegrityCheck(pageHtml, runRecord.brief),
     await linkAuditCheck(pageHtml),
     ...(await renderChecks(runDir)),
   ];
@@ -115,6 +116,63 @@ function selfContainmentCheck(pageHtml, allowedFontHosts) {
     rule: "single-file",
     pass: offenses.length === 0,
     details: offenses.length ? offenses.join("; ") : "ok",
+  };
+}
+
+// tel: and mailto: are the one place a page looks perfect and is still wrong: the label
+// reads correctly while the href quietly drops a character. Two runs of the demo brief
+// produced a tel: href missing a digit, in different positions, and the advisory review
+// caught it only once. Comparing digits is exact, so it belongs in the deciding half
+// rather than in a model's judgement.
+const digitsOf = (value) => (value || "").replace(/\D/g, "");
+
+function contactIntegrityCheck(pageHtml, briefBody) {
+  const contact = briefBody?.contact ?? {};
+  const anchors = [
+    ...pageHtml.matchAll(
+      /<a\b[^>]*\bhref\s*=\s*["'](tel:|mailto:)([^"']+)["'][^>]*>(.*?)<\/a>/gis,
+    ),
+  ];
+
+  const offenses = anchors.flatMap(([, scheme, target, rawLabel]) => {
+    const label = rawLabel.replace(/<[^>]+>/g, "").trim();
+    if (scheme === "tel:") {
+      const href = digitsOf(target);
+      return [
+        digitsOf(label) && href !== digitsOf(label)
+          ? `tel: href has digits ${href}, its own label reads ${digitsOf(label)}`
+          : null,
+        contact.phone && href !== digitsOf(contact.phone)
+          ? `tel: href has digits ${href}, the brief says ${digitsOf(contact.phone)}`
+          : null,
+        // Once the digits had to match, the drafter started pasting the display string
+        // into the href, spaces and all. RFC 3966 allows "-", ".", "(" and ")" as visual
+        // separators; a space is not one, and an unencoded space is not a valid URL.
+        /\s/.test(target)
+          ? `tel: href "${target}" contains a space, which is not a valid separator`
+          : null,
+      ].filter(Boolean);
+    }
+    const href = target.trim().toLowerCase();
+    // Compare against the address inside the label, not the whole label: a button
+    // reading "Email hello@x.ph" is correct, and demanding equality would fail it.
+    const labelAddress = label.match(/[^\s<>()]+@[^\s<>()]+/)?.[0].toLowerCase();
+    return [
+      labelAddress && labelAddress !== href
+        ? `mailto: href ${href} does not match the address in its label, ${labelAddress}`
+        : null,
+      contact.email && href !== contact.email.toLowerCase()
+        ? `mailto: href ${href} does not match the brief address ${contact.email}`
+        : null,
+    ].filter(Boolean);
+  });
+
+  const unique = [...new Set(offenses)];
+  return {
+    name: `contact integrity (${anchors.length} tel/mailto link${anchors.length === 1 ? "" : "s"})`,
+    rule: "contact-integrity",
+    pass: unique.length === 0,
+    details: unique.length ? unique.join("; ") : "ok",
   };
 }
 

@@ -2,6 +2,34 @@
 
 Every score this suite has produced, and what changed between them. Newest first.
 
+## 2026-08-17, 8/8, after adding contact-integrity
+
+Detection 8/8, 0 collateral, 0 false fails. Two new mutations, both targeting one new check.
+
+Running the engine on the demo brief again produced a `tel:` href missing one digit while its
+label read correctly. The same defect class had appeared on the 2026-07-15 run, in a different
+position, and was recorded here as a known blind spot on the grounds that the advisory review
+had caught it. This time the advisory review returned zero findings and missed it.
+
+Two occurrences and one miss retired the blind-spot argument. A digit comparison is exact, so
+it moved into the deciding half as `contact-integrity`: a `tel:` or `mailto:` href must match
+its own visible label and the brief's contact detail.
+
+Adding the check immediately failed the golden fixture, which still carried the July version of
+the defect. That is the check working, not a fixture problem. The fixture's href was corrected
+to `tel:+63288452210` so the baseline is clean, and the correction is recorded here rather than
+made quietly.
+
+The next engine run then satisfied the digit comparison by pasting the display string straight
+into the href, spaces and all, which is not a valid tel URI under RFC 3966. The fix had changed
+the failure mode instead of removing it. The check now rejects whitespace in a `tel:` href, and
+`tel-space-separator` is its mutation. Rules bumped to 1.2.0. The engine run after that passed
+7/7 with the href written as `tel:+63288452210` and the label left readable.
+
+One false positive was found and fixed on the way: comparing a whole label against the address
+failed a correct button reading "Email hello@salcedosystems.ph". It now extracts the address
+from the label.
+
 ## 2026-08-17, 6/6, after hardening the overflow measurement
 
 Detection 6/6, 0 collateral, 0 false fails on the clean page. Baseline gate 640 ms,
