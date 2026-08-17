@@ -102,6 +102,17 @@ export const MUTATIONS = [
       ),
   },
   {
+    id: "side-accent-stripe",
+    rule: "no-side-stripe",
+    defect: "a coloured stripe down one edge of a callout, the generated-UI callout tell",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(
+        pageHtml,
+        '<style>.qa-callout{border-left:3px solid #c1502e;padding-left:14px}</style>' +
+          '<p class="qa-callout">Restores are tested every quarter.</p>',
+      ),
+  },
+  {
     id: "unresolved-image-placeholder",
     rule: "imagery-resolved",
     defect: "an image placeholder left in the src, so the page renders a broken image",

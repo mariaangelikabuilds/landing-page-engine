@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "checkCount": 11,
+    "checkCount": 13,
     "falseFails": [],
     "clean": true
   },
@@ -65,6 +65,13 @@
       "id": "page-over-weight",
       "rule": "page-weight",
       "defect": "an embedded image large enough to push the page past its byte budget",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "side-accent-stripe",
+      "rule": "no-side-stripe",
+      "defect": "a coloured stripe down one edge of a callout, the generated-UI callout tell",
       "detected": true,
       "collateral": []
     },

@@ -1,6 +1,6 @@
 # Page Rules
 
-Version 1.5.0 (2026-08-17)
+Version 1.6.0 (2026-08-17)
 
 Every drafted page is written against this file, and the review pass cites these IDs
 when it flags a violation. Rules marked **gate** are also enforced by deterministic
@@ -14,8 +14,12 @@ checks in `qa.mjs`; the model review is advisory and never decides pass/fail on 
 - `valid-document` (gate): A doctype, one `<html>` element with a `lang` attribute,
   one `<title>`, and a `<meta name="viewport">` tag. The document must parse without
   unclosed structural tags.
-- `responsive` (gate): No horizontal overflow at 375px. Layout is built with flex or
-  grid and relative units, not fixed pixel widths on containers.
+- `responsive` (gate): No horizontal overflow at 375px, measured with the page's own
+  `overflow-x` neutralised so it cannot hide the problem. Build with flex or grid and
+  relative units. Concretely, the three things that actually break it: every display size
+  is a `clamp()` whose minimum fits a 320px viewport; no element declares a fixed pixel
+  width above 320px; and any long unbroken string, a URL or an email address, carries
+  `overflow-wrap: anywhere`. A table needs a scroll container, not a minimum width.
 
 ## Copy
 
@@ -73,17 +77,35 @@ plus paragraph, repeated down the page, with a third of the viewport left empty.
 - `grid-break`: At least one section departs from the page's dominant grid. Bleed to an
   edge, overlap two blocks, run type oversized, or go off-axis. One is enough, and one
   is required. Without it the page reads as output from a layout library.
-- `type-scale`: The largest and smallest type on the page differ by at least a factor of
-  four, and the sizes form a visible scale rather than a crowd: no two sizes so close
-  that the difference reads as an accident. Six or so distinct sizes is normal once a
-  page has a headline, a section heading, a lede, body copy, a caption, and a figure.
-  Hierarchy comes from scale, weight, and colour, never from decorative italic,
-  tracked-out caps, or a rule above a heading.
+- `type-scale`: The largest and smallest type differ by at least a factor of four, and the
+  sizes form a visible scale rather than a crowd. Six or so distinct sizes is normal once a
+  page has a headline, a section heading, a lede, body, a caption and a figure. Two ratios,
+  not one: about 1.2 at 375px and about 1.333 at 1440px, interpolated with `clamp()`. A
+  flat 1.1 scale reads as uncommitted; 1.5 and above starves the middle of the page. The
+  scale is a tool and not a law, so one deliberate off-scale size is allowed where it
+  looks better. Hierarchy comes from scale, weight and colour, never from decorative
+  italic, tracked-out caps, or a rule above a heading.
+- `type-measure`: Body copy sits between 45 and 75 characters per line, 60ch as the
+  working ceiling. Set the measure on the text element, never on a wrapper that then
+  constrains unrelated content. Body size 16px and up; line-height moves inversely to
+  size, roughly 1.45 to 1.6 for body and 1.0 to 1.15 for display. Weight steps are at
+  least 200 apart, so 400 against 700, never 500 against 600.
+- `spacing-ratio`: Space between sections is at least twice the space inside them, which
+  is what makes a section read as one thing. Vary the gaps deliberately rather than
+  stepping a single scale uniformly down the page.
+- `figure-ground`: Two surface levels, three at the very most. Name what earns elevation
+  before using it. Everything sitting on its own tinted surface is the card reflex wearing
+  a different hat.
 - `density-variation`: Sections do not all breathe the same. At least one is tight and
   data-dense, at least one is generous and near-empty. Uniform vertical padding down the
   whole page is the rhythm tell in spacing form.
 - `no-decorative-labels`: No tracked-out all-caps kicker labels, no numbered section
-  prefixes, no colored accent bars on cards or callouts.
+  prefixes.
+- `no-side-stripe` (gate): No single-edge accent stripe. A `border-left` or `border-right`
+  thicker than a hairline, on a card, callout, list item or blockquote, is the most
+  recognisable generated-UI pattern in existence. A 1px rule is a rule and is fine.
+  Anything thicker on one edge only is the tell. If a passage needs lift, use a full
+  border, a background tint, a leading figure, or nothing.
 - `semantic-html` (gate, via axe): Landmarks (`header`, `main`, `footer`), a single
   `h1`, heading levels in order, lists marked up as lists, buttons versus links used
   by function. Images carry meaningful `alt` text or `alt=""` when decorative.
@@ -127,9 +149,11 @@ limitation: transitions, keyframes, and scroll-driven animations
   `#c1502e` for a darker rust; the page looked deliberate and was off-brand. If it gives none, choose a palette grounded in the subject matter,
   and never default to indigo-on-white, purple-to-blue gradients, or pure black text
   on pure white.
-- `type-deliberate`: System font stacks are the default. A webfont is allowed only
-  when the brief names one. Never fall back to the overused AI picks (Inter, Poppins,
-  Montserrat, Space Grotesk, DM Sans and their lookalikes) even via a font URL.
+- `type-deliberate`: The art direction stage chooses both families for the brand's voice
+  and rejects training-data defaults by name, and the pipeline embeds them as woff2 data
+  URIs before you see the page. Reference them by family name and write no `@font-face`,
+  `@import`, or `<link>` of your own. Do not substitute a system stack for the directed
+  family, and do not add a third family.
 - `contrast-aa` (gate, via axe): All text meets WCAG 2.1 AA contrast. Check hover
   and focus states too.
 - `no-stock-effects`: No glassmorphism, gradient text, bento grids, marquee logo
@@ -155,6 +179,18 @@ limitation: transitions, keyframes, and scroll-driven animations
 
 ## Change log
 
+- 1.6.0: An art direction stage now runs before drafting. The rules could say what a page
+  must not be and never made a decision, so pages passed every check and stayed dull. The
+  new stage commits to voice, physical object, aesthetic lane, colour strategy against a
+  named reference, and both typefaces, rejecting its own first reflexes by name before it
+  chooses. Typography is no longer a system stack: the direction picks two families off a
+  reject list of training-data defaults, and the pipeline embeds them as woff2 data URIs
+  so the page still makes no external request. `type-deliberate` is a gate on the directed
+  families actually being referenced. Craft numbers added from working typographers:
+  measure 45 to 75 characters, two interpolated scale ratios rather than one, weight steps
+  at least 200 apart, section spacing at least twice intra-section spacing, and at most
+  three surface levels. The brief's palette outranks the direction's: client hex values
+  are the brand and the strategy only decides how much surface each one covers.
 - 1.5.0: Photographs. The draft asks for one with `{{IMAGE: description}}` in a src and
   the pipeline embeds it before QA, so a page with imagery is still a single file with
   no external requests. `imagery-resolved` is a gate: a leftover placeholder fails the

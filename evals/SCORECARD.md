@@ -6,7 +6,7 @@ so this file and the code cannot drift apart.
 The golden page is a real run that passed 6/6 (`2026-07-15T19-21-30-salcedo-systems`).
 Each mutation injects exactly one defect into it and names the check that should fire.
 
-**Detection: 13/13 (100%).
+**Detection: 14/14 (100%).
 False fails on the clean page: 0.
 Collateral failures across all mutants: 0.**
 
@@ -21,6 +21,7 @@ Collateral failures across all mutants: 0.**
 | `tel-digit-drop` | contact-integrity | caught | none |
 | `tel-space-separator` | contact-integrity | caught | none |
 | `page-over-weight` | page-weight | caught | none |
+| `side-accent-stripe` | no-side-stripe | caught | none |
 | `unresolved-image-placeholder` | imagery-resolved | caught | none |
 | `accent-swapped` | palette-from-brief | caught | none |
 | `entrance-never-resolves` | motion-visible | caught | none |

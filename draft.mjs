@@ -2,6 +2,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DRAFT_MODEL, draftCompletion, usageCostUsd } from "./claude.mjs";
 import { resolveImages } from "./image.mjs";
+import { directPage, directionBrief } from "./direction.mjs";
+import { embedFonts, injectFonts } from "./font.mjs";
 
 const pageRules = readFileSync(
   new URL("rules/page-rules.md", import.meta.url),
@@ -62,12 +64,30 @@ export async function draftPage(briefBody, outRoot = "out/runs") {
   const runDir = join(outRoot, runSlug(briefBody.brand ?? "page"));
   mkdirSync(runDir, { recursive: true });
 
-  const userPrompt = `Write the landing page for this brief:\n\n${JSON.stringify(briefBody, null, 2)}`;
   const startedAt = new Date().toISOString();
+
+  // Direction first. The drafter used to make every aesthetic decision implicitly while
+  // writing markup, which is how pages came out passing every check and still dull.
+  const { direction, usage: directionUsage, costUsd: directionCostUsd } = await directPage(briefBody);
+  process.stderr.write(
+    `  direction: ${direction.voiceWords.join(", ")} · ${direction.color.strategy} after ${direction.color.reference}\n` +
+      `  type: ${direction.type.displayFamily} / ${direction.type.bodyFamily}\n`,
+  );
+
+  const { styleBlock, embedded } = await embedFonts([
+    { family: direction.type.displayFamily, weights: direction.type.displayWeights },
+    { family: direction.type.bodyFamily, weights: direction.type.bodyWeights },
+  ]);
+
+  const userPrompt = `${directionBrief(direction)}
+
+Write the landing page for this brief:
+
+${JSON.stringify(briefBody, null, 2)}`;
   const { draftText, usage } = await draftCompletion(draftSystemPrompt, userPrompt);
 
   const { pageHtml, images } = await resolveImages(
-    stripAccidentalFences(draftText),
+    injectFonts(stripAccidentalFences(draftText), styleBlock),
     briefBody,
   );
   writeFileSync(join(runDir, "page.html"), pageHtml);
@@ -78,6 +98,10 @@ export async function draftPage(briefBody, outRoot = "out/runs") {
         brief: briefBody,
         model: DRAFT_MODEL,
         startedAt,
+        direction,
+        fonts: embedded,
+        directionUsage,
+        directionCostUsd,
         draftUsage: usage,
         draftCostUsd: usageCostUsd(usage),
         // Image spend is not folded into costUsd: gpt-image-1 is priced per image, not

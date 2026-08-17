@@ -60,6 +60,24 @@ export async function draftCompletion(systemPrompt, userPrompt) {
   return { draftText, usage: finalMessage.usage };
 }
 
+export async function directionCompletion(systemPrompt, userPrompt, directionSchema) {
+  const message = await anthropic().messages.create({
+    model: REVIEW_MODEL,
+    max_tokens: 16000,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+    output_config: { format: { type: "json_schema", schema: directionSchema } },
+  });
+  if (message.stop_reason === "refusal") {
+    throw new Error("direction request was refused by the model");
+  }
+  const block = message.content.find((part) => part.type === "text");
+  if (!block) {
+    throw new Error(`direction returned no text block (stop_reason: ${message.stop_reason})`);
+  }
+  return { directionText: block.text, usage: message.usage };
+}
+
 export async function reviewCompletion(systemPrompt, userPrompt, reviewSchema) {
   const reviewMessage = await anthropic().messages.create({
     model: REVIEW_MODEL,

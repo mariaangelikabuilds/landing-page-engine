@@ -28,7 +28,9 @@ export async function deterministicGate(runDir) {
     selfContainmentCheck(pageHtml, allowedFontHosts),
     contactIntegrityCheck(pageHtml, runRecord.brief),
     paletteFidelityCheck(pageHtml, runRecord.brief),
+    typeDirectedCheck(pageHtml, runRecord.direction),
     imageryResolvedCheck(pageHtml),
+    sideStripeCheck(pageHtml),
     pageWeightCheck(pageHtml),
     await linkAuditCheck(pageHtml),
     ...(await renderChecks(runDir)),
@@ -184,6 +186,29 @@ function contactIntegrityCheck(pageHtml, briefBody) {
 // back at 2MB and would have shipped as a 2MB landing page. The budget is the check.
 const PAGE_BUDGET_KB = 900;
 
+// A coloured stripe down one edge of a card, callout or list item is the single most
+// recognisable generated-UI pattern there is: shadcn Alert, the Vercel docs callout, the
+// Notion callout, every "tip box" a model has ever produced. A hairline is a rule and is
+// fine; anything thicker on one edge only is the tell. The direction stage produced one
+// on its first good page, which is how this check exists.
+function sideStripeCheck(pageHtml) {
+  const stripes = [
+    ...pageHtml.matchAll(
+      /border-(left|right|inline-start|inline-end)\s*:\s*([0-9.]+)px\b[^;]*/gi,
+    ),
+  ]
+    .filter((hit) => Number(hit[2]) > 1)
+    .map((hit) => hit[0].trim());
+
+  const unique = [...new Set(stripes)];
+  return {
+    name: "no single-edge accent stripes",
+    rule: "no-side-stripe",
+    pass: unique.length === 0,
+    details: unique.length ? unique.join("; ") : "ok",
+  };
+}
+
 function pageWeightCheck(pageHtml) {
   const kb = Math.round(Buffer.byteLength(pageHtml, "utf8") / 1024);
   return {
@@ -207,6 +232,24 @@ function imageryResolvedCheck(pageHtml) {
     rule: "imagery-resolved",
     pass: unique.length === 0,
     details: unique.length ? `still unresolved: ${unique.join("; ")}` : "ok",
+  };
+}
+
+// Art direction picks the two families and the pipeline embeds them, so a page that
+// quietly falls back to a system stack has thrown away the one decision that separates a
+// designed page from a competent one. Whether the family is referenced is exact.
+function typeDirectedCheck(pageHtml, direction) {
+  const wanted = [direction?.type?.displayFamily, direction?.type?.bodyFamily].filter(Boolean);
+  if (!wanted.length) {
+    return { name: "type follows direction (no direction on record)", rule: "type-deliberate", pass: true, details: "skipped" };
+  }
+  const declarations = pageHtml.match(/font-family:[^;}]+/gi)?.join(" ").toLowerCase() ?? "";
+  const missing = [...new Set(wanted)].filter((family) => !declarations.includes(family.toLowerCase()));
+  return {
+    name: `type follows direction (${[...new Set(wanted)].join(", ")})`,
+    rule: "type-deliberate",
+    pass: missing.length === 0,
+    details: missing.length ? `directed family never referenced: ${missing.join(", ")}` : "ok",
   };
 }
 

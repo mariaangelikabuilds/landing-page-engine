@@ -81,16 +81,38 @@ async function fromOpenAi(description, brandVoice) {
   return `data:image/webp;base64,${encoded}`;
 }
 
+// Both providers rate limit per minute, and a transient network blip looks identical to a
+// permanent failure at the call site. Waiting is the correct response to either; only a
+// spent balance is worth giving up on, and that says so in the message.
+const RETRYABLE = /429|RESOURCE_EXHAUSTED|rate|quota|fetch failed|ETIMEDOUT|ECONNRESET/i;
+const TERMINAL = /no credits|billing|invalid[_ ]api[_ ]key|unauthorized/i;
+const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+
 async function generateOne(description, brandVoice) {
+  const providers = [
+    ["gpt-image-1", fromOpenAi],
+    ["gemini-2.5-flash-image", fromGemini],
+  ];
   const failures = [];
-  for (const [name, provider] of [["gpt-image-1", fromOpenAi], ["gemini-2.5-flash-image", fromGemini]]) {
-    try {
-      return await provider(description, brandVoice);
-    } catch (providerFailure) {
-      failures.push(`${name}: ${providerFailure.message}`);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (const [name, provider] of providers) {
+      try {
+        return await provider(description, brandVoice);
+      } catch (providerFailure) {
+        const message = `${name}: ${providerFailure.message}`;
+        failures.push(message);
+        if (TERMINAL.test(providerFailure.message)) continue;
+        if (!RETRYABLE.test(providerFailure.message)) continue;
+      }
+    }
+    if (attempt < 2) {
+      const wait = 30_000 * (attempt + 1);
+      process.stderr.write(`  image: every provider busy, waiting ${wait / 1000}s\n`);
+      await pause(wait);
     }
   }
-  throw new Error(failures.join(" | "));
+  throw new Error([...new Set(failures)].join(" | "));
 }
 
 // gpt-image-1 can return compressed webp; Gemini returns PNG, and a 2MB PNG inlined as
