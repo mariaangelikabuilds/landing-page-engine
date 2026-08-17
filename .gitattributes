@@ -1,0 +1,5 @@
+# The eval artifacts are byte-compared by CI (git diff --exit-code). Node writes them
+# with LF, so keep LF in the working tree too, or a Windows checkout reports a diff
+# that CI on Linux never sees.
+* text=auto eol=lf
+*.png binary
