@@ -8,7 +8,12 @@ export const REVIEW_MODEL = "claude-sonnet-5";
 const PRICE_PER_MTOK = { input: 2, output: 10 };
 
 function apiKeyFromEnvFile() {
-  const envText = readFileSync(new URL(".env", import.meta.url), "utf8");
+  let envText;
+  try {
+    envText = readFileSync(new URL(".env", import.meta.url), "utf8");
+  } catch {
+    throw new Error("no ANTHROPIC_API_KEY in the environment and no .env file to read");
+  }
   const keyLine = envText
     .split(/\r?\n/)
     .find((line) => line.startsWith("ANTHROPIC_API_KEY="));
@@ -16,9 +21,16 @@ function apiKeyFromEnvFile() {
   return keyLine.slice("ANTHROPIC_API_KEY=".length).trim();
 }
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY ?? apiKeyFromEnvFile(),
-});
+// Built on first call, not at import. qa.mjs imports usageCostUsd from here, so
+// constructing the client at module scope made the deterministic gate demand a key it
+// never uses. CI caught it: evals run with no .env and no secrets.
+let client;
+function anthropic() {
+  client ??= new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY ?? apiKeyFromEnvFile(),
+  });
+  return client;
+}
 
 export function usageCostUsd(usage) {
   return (
@@ -30,7 +42,7 @@ export function usageCostUsd(usage) {
 
 export async function draftCompletion(systemPrompt, userPrompt) {
   // Streaming keeps a full-page generation under the SDK HTTP timeout.
-  const pageStream = anthropic.messages.stream({
+  const pageStream = anthropic().messages.stream({
     model: DRAFT_MODEL,
     max_tokens: 32000,
     system: systemPrompt,
@@ -45,7 +57,7 @@ export async function draftCompletion(systemPrompt, userPrompt) {
 }
 
 export async function reviewCompletion(systemPrompt, userPrompt, reviewSchema) {
-  const reviewMessage = await anthropic.messages.create({
+  const reviewMessage = await anthropic().messages.create({
     model: REVIEW_MODEL,
     max_tokens: 8000,
     system: systemPrompt,
