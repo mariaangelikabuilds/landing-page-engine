@@ -54,7 +54,7 @@ API key, no network, and no cost. That is why CI can run it on fork pull request
 secrets are unavailable. `evals/SCORECARD.md` and `evals/results.json` are rewritten on
 every run and CI fails on a diff, so the numbers below cannot drift from the code.
 
-**8/8 caught, 0 collateral failures, 0 false fails on the clean page, 6.0 s.**
+**13/13 caught, 0 collateral failures, 0 false fails on the clean page, 39 s.**
 
 The first run scored 5/6, and the miss was the point. A 2000px element on a 375px viewport
 did not fail the `responsive` check, because the golden page sets `overflow-x: hidden` on

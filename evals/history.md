@@ -2,6 +2,57 @@
 
 Every score this suite has produced, and what changed between them. Newest first.
 
+## 2026-08-17, 13/13, after composition, motion and photographs
+
+Detection 13/13, 0 collateral, 0 false fails. Five new mutations across four new checks.
+
+The pages were passing every check and still looking wrong: one left column of heading and
+paragraph, repeated, with a third of the viewport dead. The rules banned bad structure and
+never asked for good composition, so the drafter had nothing to aim at. Rules 1.5.0 adds
+composition and motion as requirements.
+
+`canvas-use` was written as a gate and demoted before it shipped. The metric was leftmost
+to rightmost content span over viewport width, and calibrating it on four real runs killed
+it: the page judged badly composed scored 63.3 percent, identical to the one judged well
+composed, because full-bleed bands and a wide header mask a stranded column. It stays in
+the rules as judgement rather than pretending to be measurable.
+
+Four checks did survive, each because the comparison is exact:
+
+- `motion-visible` renders the page twice, once normally and once under
+  `prefers-reduced-motion: reduce`, walking a viewport at a time so scroll-driven
+  timelines actually fire, and fails on any text left invisible. Its first false positive
+  was mine: `<script>` holds a text node and never renders, so the inline-script mutation
+  tripped it as collateral. Non-rendered elements are excluded now.
+- `palette-from-brief` promoted to a gate after the advisory review caught two separate
+  drafts substituting a darker rust for the brief's `#c1502e`.
+- `imagery-resolved` fails on a leftover `{{IMAGE:}}` placeholder. `single-file` could not
+  catch it, because a placeholder is not an http URL and gets skipped.
+- `page-weight` caps the finished page at 900kb, after a generated PNG arrived at 2MB.
+
+Four bugs surfaced in the same pass, none of them found by reading the code:
+
+1. Adding animations broke the screenshots. `capture` fired immediately after `goto`, so
+   the 1440 shot caught the hero headline part way through a 0.6s fade. The page was
+   correct and the artifact a human reviews was not. Animations settle before capture now.
+2. A failed image call threw out of the draft stage and left an empty run directory,
+   discarding a draft that had already been paid for. Image failures degrade now, the
+   placeholder stays, and the gate refuses the page on `imagery-resolved`.
+3. The review was handed raw base64 and hit 1,989,538 tokens against a 1,000,000 ceiling.
+   Image data is elided before the reviewer sees the page.
+4. A draft came back at exactly 32,000 output tokens, truncated mid-document with no
+   closing tags. `valid-document` caught it rather than shipping it, which is the split
+   working, but the ceiling was the cause. Draft raised to 64,000, review to 16,000.
+
+Photographs generate through gpt-image-1 and fall back to gemini-2.5-flash-image, then get
+re-encoded to webp at 1600px through a canvas round trip in the Playwright already present
+for QA. 2074kb became 33kb, 1997kb became 20kb, and the finished page is 63kb.
+
+The advisory review then flagged `type-scale` on the finished page, counting nine sizes
+against a ceiling of five. It was right and the rule was wrong: a page with a headline, a
+section heading, a lede, body, a caption and a stat numeral needs about six. The rule now
+asks for contrast and a visible scale instead of scarcity.
+
 ## 2026-08-17, 8/8, after adding contact-integrity
 
 Detection 8/8, 0 collateral, 0 false fails. Two new mutations, both targeting one new check.
