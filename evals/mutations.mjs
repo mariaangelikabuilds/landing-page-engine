@@ -91,6 +91,59 @@ export const MUTATIONS = [
       return pageHtml.replace("tel:+63288452210", "tel:+63 2 8845 2210");
     },
   },
+  {
+    id: "page-over-weight",
+    rule: "page-weight",
+    defect: "an embedded image large enough to push the page past its byte budget",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(
+        pageHtml,
+        `<img alt="" src="data:image/webp;base64,${"QUJDRA".repeat(170_000)}">`,
+      ),
+  },
+  {
+    id: "unresolved-image-placeholder",
+    rule: "imagery-resolved",
+    defect: "an image placeholder left in the src, so the page renders a broken image",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(
+        pageHtml,
+        '<img src="{{IMAGE: a server room in a Makati office at night}}" alt="Server room">',
+      ),
+  },
+  {
+    id: "accent-swapped",
+    rule: "palette-from-brief",
+    defect: "the brief's accent hex replaced everywhere by a nearby darker tone",
+    apply: (pageHtml) => {
+      if (!/#c1502e/i.test(pageHtml)) {
+        throw new Error("fixture no longer carries the brief accent to swap");
+      }
+      return pageHtml.replace(/#c1502e/gi, "#8a3a1f");
+    },
+  },
+  {
+    id: "entrance-never-resolves",
+    rule: "motion-visible",
+    defect: "an entrance start state with no animation to bring it back, so the text never appears",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(
+        pageHtml,
+        '<style>.qa-enter{opacity:0;transform:translateY(12px)}</style>' +
+          '<p class="qa-enter">Last restore drill recovered 100 percent of sampled files.</p>',
+      ),
+  },
+  {
+    id: "reduced-motion-hides-content",
+    rule: "motion-visible",
+    defect: "content removed entirely under prefers-reduced-motion instead of just its motion",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(
+        pageHtml,
+        "<style>@media (prefers-reduced-motion: reduce){.qa-rm{display:none}}</style>" +
+          '<p class="qa-rm">Backups run nightly at 22:00.</p>',
+      ),
+  },
 ];
 
 // Defects the deterministic gate is known not to catch. These are not scored;

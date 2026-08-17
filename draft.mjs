@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DRAFT_MODEL, draftCompletion, usageCostUsd } from "./claude.mjs";
+import { resolveImages } from "./image.mjs";
 
 const pageRules = readFileSync(
   new URL("rules/page-rules.md", import.meta.url),
@@ -65,7 +66,10 @@ export async function draftPage(briefBody, outRoot = "out/runs") {
   const startedAt = new Date().toISOString();
   const { draftText, usage } = await draftCompletion(draftSystemPrompt, userPrompt);
 
-  const pageHtml = stripAccidentalFences(draftText);
+  const { pageHtml, images } = await resolveImages(
+    stripAccidentalFences(draftText),
+    briefBody,
+  );
   writeFileSync(join(runDir, "page.html"), pageHtml);
   writeFileSync(
     join(runDir, "run.json"),
@@ -76,6 +80,10 @@ export async function draftPage(briefBody, outRoot = "out/runs") {
         startedAt,
         draftUsage: usage,
         draftCostUsd: usageCostUsd(usage),
+        // Image spend is not folded into costUsd: gpt-image-1 is priced per image, not
+        // per token, and guessing a rate here would put an invented number in the
+        // ledger. Count and size are recorded so the real cost stays reconstructable.
+        images,
       },
       null,
       2,

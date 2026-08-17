@@ -27,6 +27,9 @@ export async function deterministicGate(runDir) {
     documentCheck(pageHtml),
     selfContainmentCheck(pageHtml, allowedFontHosts),
     contactIntegrityCheck(pageHtml, runRecord.brief),
+    paletteFidelityCheck(pageHtml, runRecord.brief),
+    imageryResolvedCheck(pageHtml),
+    pageWeightCheck(pageHtml),
     await linkAuditCheck(pageHtml),
     ...(await renderChecks(runDir)),
   ];
@@ -176,6 +179,54 @@ function contactIntegrityCheck(pageHtml, briefBody) {
   };
 }
 
+// Embedding images keeps the page one file, which is the point, but base64 costs a third
+// more than the bytes it encodes and there is no cache to save it. A generated PNG came
+// back at 2MB and would have shipped as a 2MB landing page. The budget is the check.
+const PAGE_BUDGET_KB = 900;
+
+function pageWeightCheck(pageHtml) {
+  const kb = Math.round(Buffer.byteLength(pageHtml, "utf8") / 1024);
+  return {
+    name: `page weight (${kb}kb of ${PAGE_BUDGET_KB}kb)`,
+    rule: "page-weight",
+    pass: kb <= PAGE_BUDGET_KB,
+    details: kb <= PAGE_BUDGET_KB ? "ok" : `${kb}kb, over budget by ${kb - PAGE_BUDGET_KB}kb`,
+  };
+}
+
+// An unresolved {{IMAGE:}} placeholder renders as a broken image with the instruction
+// still sitting in the src. single-file cannot catch it, because a placeholder is not an
+// http URL and gets skipped as a local path would be.
+function imageryResolvedCheck(pageHtml) {
+  const left = [...pageHtml.matchAll(/\{\{IMAGE:\s*([^}]+?)\s*\}\}/g)].map((hit) =>
+    hit[1].slice(0, 50),
+  );
+  const unique = [...new Set(left)];
+  return {
+    name: "no unresolved image placeholders",
+    rule: "imagery-resolved",
+    pass: unique.length === 0,
+    details: unique.length ? `still unresolved: ${unique.join("; ")}` : "ok",
+  };
+}
+
+// When the brief hands over hex values, using them is a comparison, not a judgement.
+// The advisory review caught two separate drafts quietly substituting a darker rust for
+// the brand accent, which is the same shape as the tel: digit drop: the page looks right
+// and is wrong. Shades derived from a brief colour are fine; the brief colour going
+// missing entirely is not.
+function paletteFidelityCheck(pageHtml, briefBody) {
+  const wanted = briefBody?.palette ?? [];
+  const source = pageHtml.toLowerCase();
+  const missing = wanted.filter((hex) => !source.includes(hex.toLowerCase()));
+  return {
+    name: `palette fidelity (${wanted.length} brief colour${wanted.length === 1 ? "" : "s"})`,
+    rule: "palette-from-brief",
+    pass: missing.length === 0,
+    details: missing.length ? `never used: ${missing.join(", ")}` : "ok",
+  };
+}
+
 async function linkAuditCheck(pageHtml) {
   const anchorUrls = [
     ...new Set(
@@ -219,20 +270,109 @@ async function probeLink(linkUrl) {
 // capture must never take the gate down with it. Chromium drops fullPage captures
 // intermittently on very tall or very wide pages; that is a lost artifact, not a
 // failed check.
+// Entrance animations meant the 1440 capture was taken mid-flight: the first animated
+// draft screenshotted its hero headline part way through a fade and looked broken while
+// the page was fine. Let animations land first, with a cap so an infinite one cannot
+// hang the run.
+async function settleAnimations(page, capMs = 1500) {
+  await page.evaluate(async (cap) => {
+    const running = document.getAnimations().map((a) => a.finished.catch(() => {}));
+    await Promise.race([
+      Promise.all(running),
+      new Promise((done) => setTimeout(done, cap)),
+    ]);
+  }, capMs);
+}
+
 async function capture(page, path) {
   try {
+    await settleAnimations(page);
     await page.screenshot({ path, fullPage: true });
   } catch (captureError) {
     process.stderr.write(`  screenshot skipped (${captureError.message.split("\n")[0]})\n`);
   }
 }
 
+// Walks the page a viewport at a time so scroll-driven timelines actually run before
+// anything is judged, then reports text that is still invisible. Elements never reached
+// by the walk are checked at the end, which is what catches display:none.
+async function invisibleText(page) {
+  return page.evaluate(async () => {
+    const settle = (ms) => new Promise((done) => setTimeout(done, ms));
+    const isVisible = (el) =>
+      el.checkVisibility({
+        opacityProperty: true,
+        visibilityProperty: true,
+        contentVisibilityAuto: true,
+      });
+    const label = (el) =>
+      (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 60) ||
+      el.tagName.toLowerCase();
+
+    // SCRIPT, STYLE and friends hold text nodes and never render. Counting them makes
+    // any injected style block read as hidden content.
+    const notRendered = new Set(["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "TITLE"]);
+    const texts = [...document.body.querySelectorAll("*")]
+      .filter((el) => !notRendered.has(el.tagName))
+      .filter((el) =>
+        [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()),
+      );
+    const hidden = new Set();
+    const judged = new Set();
+
+    for (let y = 0; y <= document.documentElement.scrollHeight; y += window.innerHeight * 0.8) {
+      window.scrollTo(0, y);
+      await settle(350);
+      for (const el of texts) {
+        if (judged.has(el)) continue;
+        const box = el.getBoundingClientRect();
+        if (box.top >= window.innerHeight || box.bottom <= 0) continue;
+        judged.add(el);
+        if (!isVisible(el) || box.width === 0 || box.height === 0) hidden.add(label(el));
+      }
+    }
+    // Anything the walk never saw was never on the canvas at all.
+    for (const el of texts) {
+      if (judged.has(el)) continue;
+      const box = el.getBoundingClientRect();
+      if (!isVisible(el) || box.width === 0 || box.height === 0) hidden.add(label(el));
+    }
+    window.scrollTo(0, 0);
+    return [...hidden];
+  });
+}
+
+async function motionVisibleCheck(page, pageUrl) {
+  const withMotion = await invisibleText(page);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(pageUrl);
+  const reduced = await invisibleText(page);
+  await page.emulateMedia({ reducedMotion: null });
+  await page.goto(pageUrl);
+
+  const offenses = [
+    ...withMotion.map((t) => `invisible on load: "${t}"`),
+    ...reduced.map((t) => `invisible under reduced motion: "${t}"`),
+  ];
+  const unique = [...new Set(offenses)];
+  return {
+    name: "no content hidden by animation (normal and reduced motion)",
+    rule: "motion-visible",
+    pass: unique.length === 0,
+    details: unique.length ? unique.join("; ") : "ok",
+  };
+}
+
 async function renderChecks(runDir) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: DESKTOP });
-    await page.goto(pathToFileURL(join(runDir, "page.html")).href);
+    const pageUrl = pathToFileURL(join(runDir, "page.html")).href;
+    await page.goto(pageUrl);
     await capture(page, join(runDir, "page-1440.png"));
+
+    const motionCheck = await motionVisibleCheck(page, pageUrl);
 
     // Rendered text, not source: copy tells are judged on what a reader sees,
     // so markup, CSS, and attribute values stay out of the scan.
@@ -285,6 +425,7 @@ async function renderChecks(runDir) {
           : `ok (${axeFindings.passes.length} rules passed)`,
       },
       copyTellsCheck(renderedCopy),
+      motionCheck,
     ];
   } finally {
     await browser.close();
@@ -352,8 +493,17 @@ thorough, and do not flag things the rules do not cover.
 ${pageRules}
 </page-rules>`;
 
+// Embedded images are megabytes of base64 that mean nothing to a reader of the markup.
+// Sent raw they took one review past 1.9M tokens against a 1M ceiling and killed the
+// pass outright. The reviewer needs to know an image is there, not what it encodes.
+const withoutImageData = (pageHtml) =>
+  pageHtml.replace(
+    /data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/gi,
+    (blob) => `data:image/…;base64,[${Math.round(blob.length / 1024)}kb elided]`,
+  );
+
 async function rulesReview(pageHtml, briefBody) {
-  const userPrompt = `Brief:\n${JSON.stringify(briefBody, null, 2)}\n\nPage:\n${pageHtml}`;
+  const userPrompt = `Brief:\n${JSON.stringify(briefBody, null, 2)}\n\nPage:\n${withoutImageData(pageHtml)}`;
   const { reviewText, usage } = await reviewCompletion(
     reviewSystemPrompt,
     userPrompt,

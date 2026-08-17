@@ -44,7 +44,11 @@ export async function draftCompletion(systemPrompt, userPrompt) {
   // Streaming keeps a full-page generation under the SDK HTTP timeout.
   const pageStream = anthropic().messages.stream({
     model: DRAFT_MODEL,
-    max_tokens: 32000,
+    // Rules 1.4.0 (composition plus motion) pushed a draft to exactly 32000 tokens and
+    // the page came back truncated, missing its closing tags. The gate caught it on
+    // valid-document rather than shipping it, which is the split working, but the
+    // ceiling was the actual cause.
+    max_tokens: 64000,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -59,7 +63,10 @@ export async function draftCompletion(systemPrompt, userPrompt) {
 export async function reviewCompletion(systemPrompt, userPrompt, reviewSchema) {
   const reviewMessage = await anthropic().messages.create({
     model: REVIEW_MODEL,
-    max_tokens: 8000,
+    // 8000 was not enough once pages carried animation CSS and grew past 29k output
+    // tokens: the call returned stop_reason max_tokens with no text block at all, and
+    // the review degraded to advisory-skipped on every run.
+    max_tokens: 16000,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
     output_config: {

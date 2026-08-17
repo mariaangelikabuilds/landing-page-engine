@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "checkCount": 7,
+    "checkCount": 11,
     "falseFails": [],
     "clean": true
   },
@@ -58,6 +58,41 @@
       "id": "tel-space-separator",
       "rule": "contact-integrity",
       "defect": "a tel: href written with spaces, so the digits match but the URI is malformed",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "page-over-weight",
+      "rule": "page-weight",
+      "defect": "an embedded image large enough to push the page past its byte budget",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "unresolved-image-placeholder",
+      "rule": "imagery-resolved",
+      "defect": "an image placeholder left in the src, so the page renders a broken image",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "accent-swapped",
+      "rule": "palette-from-brief",
+      "defect": "the brief's accent hex replaced everywhere by a nearby darker tone",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "entrance-never-resolves",
+      "rule": "motion-visible",
+      "defect": "an entrance start state with no animation to bring it back, so the text never appears",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "reduced-motion-hides-content",
+      "rule": "motion-visible",
+      "defect": "content removed entirely under prefers-reduced-motion instead of just its motion",
       "detected": true,
       "collateral": []
     }

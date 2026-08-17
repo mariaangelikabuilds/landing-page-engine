@@ -6,7 +6,7 @@ so this file and the code cannot drift apart.
 The golden page is a real run that passed 6/6 (`2026-07-15T19-21-30-salcedo-systems`).
 Each mutation injects exactly one defect into it and names the check that should fire.
 
-**Detection: 8/8 (100%).
+**Detection: 13/13 (100%).
 False fails on the clean page: 0.
 Collateral failures across all mutants: 0.**
 
@@ -20,6 +20,11 @@ Collateral failures across all mutants: 0.**
 | `copy-tell-em-dash` | copy-tells | caught | none |
 | `tel-digit-drop` | contact-integrity | caught | none |
 | `tel-space-separator` | contact-integrity | caught | none |
+| `page-over-weight` | page-weight | caught | none |
+| `unresolved-image-placeholder` | imagery-resolved | caught | none |
+| `accent-swapped` | palette-from-brief | caught | none |
+| `entrance-never-resolves` | motion-visible | caught | none |
+| `reduced-motion-hides-content` | motion-visible | caught | none |
 
 "Also failed" measures whether a defect trips checks it has no business tripping.
 Zero means each check is independent, so a failure names its own cause.
