@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salcedo Systems: Managed Backup and Recovery for Manila Offices</title>
+<style>
+  :root {
+    --navy: #1b3a4b;
+    --cream: #e8e3d8;
+    --rust: #c1502e;
+    --rust-dark: #a8431f;
+    --white: #ffffff;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--cream);
+    color: var(--navy);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  h1, h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.2;
+    margin: 0 0 1rem 0;
+  }
+
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 1.6rem; }
+
+  p { margin: 0 0 1rem 0; }
+
+  .wrap {
+    width: 100%;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+
+  header .wrap, footer .wrap {
+    padding: 1.5rem 1.5rem;
+  }
+
+  header {
+    background: var(--navy);
+    color: var(--cream);
+  }
+
+  header .wrap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    max-width: 60rem;
+  }
+
+  .brand {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--cream);
+  }
+
+  nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  nav a {
+    color: var(--cream);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  nav a:hover, nav a:focus {
+    text-decoration: underline;
+    border-bottom-color: var(--cream);
+  }
+
+  .band-light { background: var(--cream); color: var(--navy); }
+  .band-dark { background: var(--navy); color: var(--cream); }
+
+  .band-dark .wrap { max-width: 60rem; }
+  .band-light .wrap { max-width: 60rem; }
+
+  a { color: inherit; }
+
+  .band-light a:not(.btn-primary):not(.btn-secondary) {
+    color: var(--rust-dark);
+    text-decoration: underline;
+  }
+
+  .band-dark a:not(.btn-primary):not(.btn-secondary) {
+    color: var(--cream);
+    text-decoration: underline;
+  }
+
+  .btn-primary, .btn-secondary {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 0.25rem;
+  }
+
+  .btn-primary {
+    background: var(--rust-dark);
+    color: var(--white);
+  }
+
+  .btn-primary:hover, .btn-primary:focus {
+    background: var(--navy);
+    color: var(--white);
+  }
+
+  .btn-secondary {
+    background: var(--cream);
+    color: var(--navy);
+  }
+
+  .btn-secondary:hover, .btn-secondary:focus {
+    background: var(--white);
+    color: var(--navy);
+  }
+
+  .contact-note {
+    margin-top: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 0.75rem 1.5rem;
+    margin: 0;
+  }
+
+  dt {
+    font-weight: bold;
+    color: var(--cream);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--cream);
+  }
+
+  @media (max-width: 30rem) {
+    dl {
+      grid-template-columns: 1fr;
+    }
+    dt {
+      margin-top: 0.5rem;
+    }
+  }
+
+  .stat {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: bold;
+    font-size: 2.25rem;
+    color: var(--rust);
+    margin: 1.5rem 0 0 0;
+  }
+
+  ul.plain {
+    margin: 0 0 1.5rem 0;
+    padding-left: 1.25rem;
+  }
+
+  ul.plain li {
+    margin-bottom: 0.4rem;
+  }
+
+  footer {
+    background: var(--navy);
+    color: var(--cream);
+  }
+
+  footer .wrap {
+    max-width: 60rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  footer .contact-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="brand">Salcedo Systems</span>
+    <nav aria-label="Section navigation">
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#drills">Restore drills</a></li>
+        <li><a href="#price">Price</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="band-light">
+    <div class="wrap">
+      <h1>Backups that actually restore.</h1>
+      <p>Salcedo Systems runs nightly encrypted backups for small offices in Metro Manila. Your servers and workstations copy to a data center in Makati and a cold storage site in Clark, every night. If a machine fails, you get the files back. We prove it with a signed report every quarter.</p>
+      <p><a class="btn-primary" href="mailto:hello@salcedosystems.ph">Email hello@salcedosystems.ph</a></p>
+      <p class="contact-note">Or call <a href="tel:+6328845220">+63 2 8845 2210</a>.</p>
+    </div>
+  </section>
+
+  <section class="band-dark" id="how">
+    <div class="wrap">
+      <h2>How the backup runs</h2>
+      <dl>
+        <dt>Schedule</dt>
+        <dd>Nightly, for every server and workstation.</dd>
+        <dt>Locations</dt>
+        <dd>A data center in Makati, plus offsite cold storage in Clark.</dd>
+        <dt>Encryption</dt>
+        <dd>Files are encrypted before they leave your office. We cannot read the contents.</dd>
+        <dt>Recovery time</dt>
+        <dd>Four hours for critical files.</dd>
+        <dt>Capacity</dt>
+        <dd>Up to 15 machines on one plan.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="band-light" id="drills">
+    <div class="wrap">
+      <h2>Restore drills, not promises</h2>
+      <p>Backups are only useful if they restore. Every quarter we pull a sample of files from cold storage and put them back, then sign a report with the results.</p>
+      <p>Our last drill recovered every sampled file, in an average of 41 minutes.</p>
+      <p class="stat">100% recovered, 41 min average</p>
+    </div>
+  </section>
+
+  <section class="band-dark" id="price">
+    <div class="wrap">
+      <h2>Price</h2>
+      <ul class="plain">
+        <li>PHP 18,500 per month, up to 15 machines.</li>
+        <li>No setup fee.</li>
+        <li>Cancel with 30 days notice, no penalty.</li>
+      </ul>
+      <p><a class="btn-secondary" href="mailto:hello@salcedosystems.ph">Email hello@salcedosystems.ph</a></p>
+    </div>
+  </section>
+
+  <section class="band-light">
+    <div class="wrap">
+      <h2>Who runs this</h2>
+      <p>Salcedo Systems started in 2019. Both founders spent their careers on bank infrastructure teams before that. Today we back up 214 machines across 19 offices in Metro Manila: law offices, accounting firms, clinics.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer id="contact">
+  <div class="wrap">
+    <span class="brand">Salcedo Systems</span>
+    <div class="contact-block">
+      <a href="mailto:hello@salcedosystems.ph">hello@salcedosystems.ph</a>
+      <a href="tel:+6328845220">+63 2 8845 2210</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

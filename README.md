@@ -37,6 +37,43 @@ text for dashes and banned vocabulary. Re-checked under the new gate, the first
 draft correctly fails (the ledger keeps both verdicts); the next draft came back
 clean and passed 6/6.
 
+## Measuring the gate
+
+The gate decides whether a page ships, and for a while that claim rested on one piece of
+evidence: a good page passed. `evals/` tests the other direction. It takes a page that
+already passed 6/6, injects exactly one known defect at a time, and asks whether the right
+check fires, and only the right check.
+
+```
+npm run evals
+```
+
+Labels are correct by construction, since the harness knows what it broke. Every mutation
+is local (the unreachable host uses the reserved `.invalid` TLD), so the suite runs with no
+API key, no network, and no cost. That is why CI can run it on fork pull requests, where
+secrets are unavailable. `evals/SCORECARD.md` and `evals/results.json` are rewritten on
+every run and CI fails on a diff, so the numbers below cannot drift from the code.
+
+**6/6 caught, 0 collateral failures, 0 false fails on the clean page, 4.4 s.**
+
+The first run scored 5/6, and the miss was the point. A 2000px element on a 375px viewport
+did not fail the `responsive` check, because the golden page sets `overflow-x: hidden` on
+`html, body`, which clamps `scrollWidth` to the viewport. The check read 0px of overflow on
+a page overflowing by more than 1600.
+
+That check was not weak, it was suppressible, and what suppressed it was the page under
+test. The drafting model had written one line of CSS that switched off the check meant to
+catch its own layout, and nothing downstream could notice: the gate reported a pass, the
+screenshot looked correct, and the ledger recorded a clean run. `responsive` now neutralises
+`overflow-x` before measuring and takes the furthest element edge as well as `scrollWidth`.
+The golden page still passes all six afterwards, so the fix caught a real defeat without
+over-firing. Full record in `evals/history.md`.
+
+The suite also names what it does not catch. The golden page has a `tel:` href whose digits
+disagree with its own link text; no deterministic check compares those, and the advisory
+review pass is what caught it. That sits in the scorecard as a known blind spot rather than
+being quietly fixed.
+
 ## Architecture
 
 ```
@@ -110,6 +147,12 @@ docs say the API can still change. The v1-to-v2 move is a small documented migra
 to do after it stabilizes. One consequence: v1's `registerTool` takes zod shapes for
 input schemas, so zod is in the dependency list for `mcp-server.mjs` alone; the
 pipeline validates the review JSON by hand.
+
+Revisit note, 2026-08-17: the spec did ship on 2026-07-28, moving MCP to a stateless
+request/response core with multi-round-trip requests replacing server-initiated calls,
+and deprecating Roots, Sampling, Logging, and the HTTP+SSE transport on a twelve-month
+clock. None of that is load-bearing for three local stdio tools, so v1 stays here for
+now. The migration is tracked, not forgotten.
 
 **What was deliberately not added.** No linkinator (the audit is a fetch loop), no
 pa11y or second browser (axe-core injects into the Playwright page already open), no

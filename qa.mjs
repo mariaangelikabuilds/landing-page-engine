@@ -15,17 +15,27 @@ const axeSource = fileURLToPath(
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 375, height: 812 };
 
-export async function qaRun(runDir) {
+// The deciding half of the gate, split out so evals/run_evals.mjs can measure it
+// without spending a review token: every check here is local, so the suite runs
+// offline and free.
+export async function deterministicGate(runDir) {
   const pageHtml = readFileSync(join(runDir, "page.html"), "utf8");
   const runRecord = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
   const allowedFontHosts = fontHosts(runRecord.brief.fontUrl);
 
-  const deterministicChecks = [
+  return [
     documentCheck(pageHtml),
     selfContainmentCheck(pageHtml, allowedFontHosts),
     await linkAuditCheck(pageHtml),
     ...(await renderChecks(runDir)),
   ];
+}
+
+export async function qaRun(runDir) {
+  const pageHtml = readFileSync(join(runDir, "page.html"), "utf8");
+  const runRecord = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
+
+  const deterministicChecks = await deterministicGate(runDir);
   // Progress goes to stderr: mcp-server.mjs runs this over stdio, where
   // stdout carries the JSON-RPC stream and must stay clean.
   for (const check of deterministicChecks) {
@@ -147,12 +157,24 @@ async function probeLink(linkUrl) {
   return 599;
 }
 
+// Screenshots are a record of the run, not an input to any verdict, so a failed
+// capture must never take the gate down with it. Chromium drops fullPage captures
+// intermittently on very tall or very wide pages; that is a lost artifact, not a
+// failed check.
+async function capture(page, path) {
+  try {
+    await page.screenshot({ path, fullPage: true });
+  } catch (captureError) {
+    process.stderr.write(`  screenshot skipped (${captureError.message.split("\n")[0]})\n`);
+  }
+}
+
 async function renderChecks(runDir) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: DESKTOP });
     await page.goto(pathToFileURL(join(runDir, "page.html")).href);
-    await page.screenshot({ path: join(runDir, "page-1440.png"), fullPage: true });
+    await capture(page, join(runDir, "page-1440.png"));
 
     // Rendered text, not source: copy tells are judged on what a reader sees,
     // so markup, CSS, and attribute values stay out of the scan.
@@ -165,10 +187,27 @@ async function renderChecks(runDir) {
     );
 
     await page.setViewportSize(PHONE);
-    await page.screenshot({ path: join(runDir, "page-375.png"), fullPage: true });
-    const overflowPx = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
-    );
+    await capture(page, join(runDir, "page-375.png"));
+    // scrollWidth alone is defeatable: a page that sets overflow-x:hidden clamps it,
+    // so the draft can silently switch off the check meant to catch its own overflow.
+    // evals/ caught exactly that. Neutralise the clip (with !important, so a page rule
+    // cannot win), then measure the real content extent from element boxes too.
+    const overflowPx = await page.evaluate(() => {
+      const root = document.documentElement;
+      const restore = [root, document.body].map((el) => [el, el.getAttribute("style")]);
+      for (const [el] of restore) el.style.setProperty("overflow-x", "visible", "important");
+
+      const rightEdges = [...document.body.querySelectorAll("*")]
+        .map((el) => Math.ceil(el.getBoundingClientRect().right))
+        .filter(Number.isFinite);
+      const contentWidth = Math.max(root.scrollWidth, ...rightEdges);
+
+      for (const [el, style] of restore) {
+        if (style === null) el.removeAttribute("style");
+        else el.setAttribute("style", style);
+      }
+      return contentWidth - window.innerWidth;
+    });
 
     return [
       {

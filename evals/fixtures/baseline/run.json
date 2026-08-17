@@ -1,0 +1,40 @@
+{
+  "brief": {
+    "brand": "Salcedo Systems",
+    "offer": "Managed backup and recovery for small Manila offices. Nightly encrypted backups of servers and workstations to two locations (a Makati data center and offsite cold storage in Clark), quarterly restore drills with a signed report, and a 4-hour recovery time objective for critical files. PHP 18,500 per month for up to 15 machines, no setup fee, cancel with 30 days notice.",
+    "audience": "Owners and office managers of 10-to-40-person firms in Metro Manila (law offices, accounting firms, clinics) who currently back up to a USB drive in a desk drawer, or to nothing. They have lost files before. They do not know what RPO means and do not want to.",
+    "voice": "Plain, direct, slightly dry. Talks like a careful engineer, not a salesman. Never scares the reader with doom scenarios; states facts and lets them land. Short sentences.",
+    "palette": [
+      "#1b3a4b",
+      "#e8e3d8",
+      "#c1502e"
+    ],
+    "contact": {
+      "email": "hello@salcedosystems.ph",
+      "phone": "+63 2 8845 2210"
+    },
+    "facts": [
+      "Founded 2019, run by two former bank infrastructure engineers",
+      "Backs up 214 machines across 19 client offices today",
+      "Last quarterly restore drill: 100 percent of sampled files recovered, average 41 minutes",
+      "Backups are encrypted before they leave the office; Salcedo staff cannot read file contents"
+    ],
+    "referenceUrl": null,
+    "fontUrl": null
+  },
+  "model": "claude-sonnet-5",
+  "startedAt": "2026-07-15T19:21:30.261Z",
+  "draftUsage": {
+    "input_tokens": 2469,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 13634,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "draftCostUsd": 0.141278
+}

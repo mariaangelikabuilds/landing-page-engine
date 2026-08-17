@@ -1,0 +1,36 @@
+name: gate evals
+
+# The suite is fully local: no API key, no network calls, no secrets. So it runs on
+# pull requests from forks too, where secrets are unavailable.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "qa.mjs"
+      - "evals/**"
+      - "rules/**"
+      - ".github/workflows/evals.yml"
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Measure the gate against injected defects
+        run: node evals/run_evals.mjs
+      - name: Fail if the committed scorecard is stale
+        run: git diff --exit-code evals/SCORECARD.md evals/results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scorecard
+          path: |
+            evals/SCORECARD.md
+            evals/results.json

@@ -1,0 +1,61 @@
+{
+  "baseline": {
+    "checkCount": 6,
+    "falseFails": [],
+    "clean": true
+  },
+  "mutations": [
+    {
+      "id": "strip-closing-html",
+      "rule": "valid-document",
+      "defect": "closing </html> tag removed",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "inline-script",
+      "rule": "single-file",
+      "defect": "a <script> tag, so the page no longer ships zero JS",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "broken-cta-link",
+      "rule": "cta-specific",
+      "defect": "a CTA pointing at a host that cannot resolve",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "fixed-width-overflow",
+      "rule": "responsive",
+      "defect": "a 2000px fixed-width element, far wider than the 375px viewport",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "low-contrast-text",
+      "rule": "semantic-html / contrast-aa",
+      "defect": "body copy at #bbbbbb on white, under the AA contrast floor",
+      "detected": true,
+      "collateral": []
+    },
+    {
+      "id": "copy-tell-em-dash",
+      "rule": "copy-tells",
+      "defect": "an em dash in rendered copy",
+      "detected": true,
+      "collateral": []
+    }
+  ],
+  "detectionRate": 100,
+  "collateralCount": 0,
+  "knownBlindSpots": [
+    {
+      "id": "tel-href-digit-mismatch",
+      "defect": "tel: href digits disagree with the link text (href \"+6328845220\" vs text \"+63 2 8845 2210\")",
+      "whyMissed": "the link audit only probes http(s) anchors; no check compares a tel: href against its own label",
+      "caughtBy": "the advisory review pass, on the 2026-07-15T19-21-30 run"
+    }
+  ]
+}
