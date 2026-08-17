@@ -146,12 +146,14 @@ async function reencode(browser, dataUri) {
 // Returns the page with placeholders replaced, plus a record for run.json. Requests run
 // one at a time on purpose: three concurrent image calls is a good way to hit a rate
 // limit and lose a whole draft over a decoration.
-export async function resolveImages(pageHtml, briefBody) {
+export async function resolveImages(pageHtml, briefBody, cache = new Map()) {
   const asked = [...pageHtml.matchAll(PLACEHOLDER)].map((hit) => hit[1]);
   if (!asked.length) return { pageHtml, images: [] };
 
+  // A repair re-drafts the markup, not the art. Photographs already generated for this
+  // run are reused, so fixing an overflow does not re-bill two image generations.
   const wanted = [...new Set(asked)].slice(0, MAX_IMAGES);
-  const resolved = new Map();
+  const resolved = new Map(cache);
   const images = [];
 
   // A photograph is the cheapest thing on the page and the draft is the most expensive.
@@ -162,6 +164,10 @@ export async function resolveImages(pageHtml, briefBody) {
   const browser = await chromium.launch();
   try {
     for (const description of wanted) {
+      if (resolved.has(description)) {
+        images.push({ description, reused: true });
+        continue;
+      }
       const startedAt = Date.now();
       try {
         const raw = await generateOne(description, briefBody?.voice);
@@ -193,6 +199,8 @@ export async function resolveImages(pageHtml, briefBody) {
       `  image: ${new Set(asked).size - wanted.length} placeholder(s) over the cap of ${MAX_IMAGES}, left unresolved\n`,
     );
   }
+
+  for (const [description, dataUri] of resolved) cache.set(description, dataUri);
 
   return {
     pageHtml: pageHtml.replace(PLACEHOLDER, (whole, description) =>

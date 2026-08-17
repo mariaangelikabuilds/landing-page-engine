@@ -2,6 +2,23 @@
 
 Every score this suite has produced, and what changed between them. Newest first.
 
+## 2026-08-17, 14/14, and the yield problem the gate created
+
+Detection 14/14, 0 collateral, 0 false fails. `no-side-stripe` added: a `border-left`
+thicker than a hairline on a callout is the most recognisable generated-UI pattern there
+is, and the new art direction stage produced one on its first genuinely good page.
+
+The more useful number is not the detection rate. Across twelve runs of the demo brief
+that day the first-pass verdict was 8 pass and 4 fail, and all four failures land in the
+last four runs, after the gate grew from six checks to thirteen. Yield fell as the gate
+tightened. That is the gate working, and on its own it is worthless: a page that is
+rejected and then re-rolled by hand is not a pipeline.
+
+So `run` now reads the failing checks back to the drafter and re-drafts, up to two
+repairs, reusing the direction, the embedded typefaces and the already-generated
+photographs. A repair pays for markup only. The checks were already saying exactly what
+was wrong and where; nothing was listening.
+
 ## 2026-08-17, 13/13, after composition, motion and photographs
 
 Detection 13/13, 0 collateral, 0 false fails. Five new mutations across four new checks.

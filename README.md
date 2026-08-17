@@ -37,6 +37,19 @@ text for dashes and banned vocabulary. Re-checked under the new gate, the first
 draft correctly fails (the ledger keeps both verdicts); the next draft came back
 clean and passed 6/6.
 
+## When the gate says no
+
+`run` does not hand a rejected page back to a person. It reads the failing checks, tells
+the drafter exactly what they said, and re-drafts, up to two repairs. The art direction,
+the embedded typefaces and the generated photographs are prepared once and reused, so a
+repair pays for markup and nothing else.
+
+This exists because the yield fell as the gate grew. Across twelve runs on 2026-08-17 the
+first-pass verdict was 8 pass and 4 fail, and every one of the failures came from the last
+four runs, where the gate had grown from six checks to thirteen. A stricter gate rejects
+more good-enough pages, which is correct behaviour and useless on its own. Reading the
+rejection back is what turns it into something that ships.
+
 ## Measuring the gate
 
 The gate decides whether a page ships, and for a while that claim rested on one piece of

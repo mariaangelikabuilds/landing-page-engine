@@ -9,14 +9,29 @@
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36";
 
+// Same lesson the image stage learned: a dropped connection is indistinguishable from a
+// real failure at the call site, and waiting is the right answer to both. A blip here used
+// to kill a run that had already paid for its art direction.
+async function withRetry(what, attempt = 0) {
+  try {
+    return await what();
+  } catch (failure) {
+    if (attempt >= 2) throw failure;
+    await new Promise((done) => setTimeout(done, 4000 * (attempt + 1)));
+    return withRetry(what, attempt + 1);
+  }
+}
+
 async function faceCss(family, weights) {
   const spec = `${family.replace(/ /g, "+")}:wght@${[...weights].sort((a, b) => a - b).join(";")}`;
   const url = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`;
-  const response = await fetch(url, { headers: { "user-agent": CHROME_UA } });
-  if (!response.ok) {
-    throw new Error(`google fonts refused ${family} (${response.status})`);
-  }
-  return response.text();
+  return withRetry(async () => {
+    const response = await fetch(url, { headers: { "user-agent": CHROME_UA } });
+    if (!response.ok) {
+      throw new Error(`google fonts refused ${family} (${response.status})`);
+    }
+    return response.text();
+  });
 }
 
 // Only the latin block. The full CSS carries a dozen unicode-range subsets and pulling
@@ -31,9 +46,11 @@ function latinFaces(css) {
 async function inlineOne(block) {
   const href = block.match(/url\((https:\/\/[^)]+\.woff2)\)/)?.[1];
   if (!href) return null;
-  const response = await fetch(href, { headers: { "user-agent": CHROME_UA } });
-  if (!response.ok) throw new Error(`font file fetch failed (${response.status})`);
-  const encoded = Buffer.from(await response.arrayBuffer()).toString("base64");
+  const encoded = await withRetry(async () => {
+    const response = await fetch(href, { headers: { "user-agent": CHROME_UA } });
+    if (!response.ok) throw new Error(`font file fetch failed (${response.status})`);
+    return Buffer.from(await response.arrayBuffer()).toString("base64");
+  });
   return block
     .replace(/url\(https:\/\/[^)]+\.woff2\)/, `url(data:font/woff2;base64,${encoded})`)
     .replace(/\s*unicode-range:[^;]+;/, "")

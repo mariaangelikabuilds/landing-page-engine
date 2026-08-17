@@ -60,35 +60,43 @@ after the doctype.
 ${pageRules}
 </page-rules>`;
 
-export async function draftPage(briefBody, outRoot = "out/runs") {
-  const runDir = join(outRoot, runSlug(briefBody.brand ?? "page"));
-  mkdirSync(runDir, { recursive: true });
-
-  const startedAt = new Date().toISOString();
-
-  // Direction first. The drafter used to make every aesthetic decision implicitly while
-  // writing markup, which is how pages came out passing every check and still dull.
+// Direction, typefaces and photographs are the expensive half and none of them are what a
+// failed check is complaining about. Prepared once, reused by every repair attempt.
+export async function prepareRun(briefBody) {
   const { direction, usage: directionUsage, costUsd: directionCostUsd } = await directPage(briefBody);
   process.stderr.write(
     `  direction: ${direction.voiceWords.join(", ")} · ${direction.color.strategy} after ${direction.color.reference}\n` +
       `  type: ${direction.type.displayFamily} / ${direction.type.bodyFamily}\n`,
   );
-
   const { styleBlock, embedded } = await embedFonts([
     { family: direction.type.displayFamily, weights: direction.type.displayWeights },
     { family: direction.type.bodyFamily, weights: direction.type.bodyWeights },
   ]);
+  return {
+    direction, styleBlock, embedded, directionUsage, directionCostUsd,
+    imageCache: new Map(),
+  };
+}
+
+export async function draftPage(briefBody, outRoot = "out/runs", prepared = null, repairNotes = "") {
+  const runDir = join(outRoot, runSlug(briefBody.brand ?? "page"));
+  mkdirSync(runDir, { recursive: true });
+
+  const startedAt = new Date().toISOString();
+  const context = prepared ?? (await prepareRun(briefBody));
+  const { direction, styleBlock, embedded, directionUsage, directionCostUsd, imageCache } = context;
 
   const userPrompt = `${directionBrief(direction)}
 
 Write the landing page for this brief:
 
-${JSON.stringify(briefBody, null, 2)}`;
+${JSON.stringify(briefBody, null, 2)}${repairNotes}`;
   const { draftText, usage } = await draftCompletion(draftSystemPrompt, userPrompt);
 
   const { pageHtml, images } = await resolveImages(
     injectFonts(stripAccidentalFences(draftText), styleBlock),
     briefBody,
+    imageCache,
   );
   writeFileSync(join(runDir, "page.html"), pageHtml);
   writeFileSync(
@@ -113,7 +121,7 @@ ${JSON.stringify(briefBody, null, 2)}`;
       2,
     ),
   );
-  return { runDir, pageHtml, usage };
+  return { runDir, pageHtml, usage, context };
 }
 
 function stripAccidentalFences(draftText) {

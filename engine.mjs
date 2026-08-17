@@ -13,11 +13,29 @@ const usage = `usage:
 const [command, target] = process.argv.slice(2);
 const say = (line) => process.stdout.write(line + "\n");
 
-async function draftStage(briefPath) {
+async function draftStage(briefPath, prepared = null, repairNotes = "") {
   say(`drafting from ${briefPath}`);
-  const { runDir, usage: draftUsage } = await draftPage(readBrief(briefPath));
+  const { runDir, usage: draftUsage, context } = await draftPage(
+    readBrief(briefPath), "out/runs", prepared, repairNotes,
+  );
   say(`  wrote ${runDir}/page.html (${draftUsage.output_tokens} output tokens)`);
-  return runDir;
+  return { runDir, context };
+}
+
+// A failing check already knows exactly what is wrong and where. Handing that back is
+// cheaper and more reliable than asking a person to run the command again, and it is the
+// difference between an engine that drafts and one that ships.
+const MAX_REPAIRS = 2;
+
+function repairNotes(qaReport) {
+  const failed = qaReport.deterministicChecks.filter((check) => !check.pass);
+  return `
+
+The previous attempt was REJECTED by the gate. Everything else about it was
+acceptable, so change only what these findings name, and keep the art direction,
+the palette, the typefaces and the section plan exactly as they are.
+
+${failed.map((check) => `- ${check.rule}: ${check.details}`).join("\n")}`;
 }
 
 async function qaStage(runDir) {
@@ -45,8 +63,24 @@ try {
     say(usage);
     process.exitCode = command ? 1 : 0;
   } else if (command === "run") {
-    const runDir = await draftStage(target);
-    await qaStage(runDir);
+    let prepared = null;
+    let notes = "";
+    let runDir;
+    let qaReport;
+
+    for (let attempt = 0; attempt <= MAX_REPAIRS; attempt += 1) {
+      ({ runDir, context: prepared } = await draftStage(target, prepared, notes));
+      qaReport = await qaStage(runDir);
+      if (qaReport.verdict === "pass") {
+        if (attempt) say(`  passed after ${attempt} repair${attempt === 1 ? "" : "s"}`);
+        break;
+      }
+      if (attempt === MAX_REPAIRS) break;
+      notes = repairNotes(qaReport);
+      const named = qaReport.deterministicChecks.filter((c) => !c.pass).map((c) => c.rule);
+      say(`  repairing: ${named.join(", ")}`);
+    }
+
     const ledgerLine = bundleStage(runDir);
     process.exitCode = ledgerLine.verdict === "pass" ? 0 : 1;
   } else if (command === "draft") {
