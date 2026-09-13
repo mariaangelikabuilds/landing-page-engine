@@ -2,6 +2,7 @@
 import { draftPage, readBrief } from "./draft.mjs";
 import { qaRun } from "./qa.mjs";
 import { bundleRun } from "./bundle.mjs";
+import { captureOutput } from "./log.mjs";
 
 const usage = `usage:
   node engine.mjs run <brief-file>     draft, qa, bundle in one pass
@@ -11,7 +12,9 @@ const usage = `usage:
 `;
 
 const [command, target] = process.argv.slice(2);
+const transcript = captureOutput();
 const say = (line) => process.stdout.write(line + "\n");
+let lastRunDir = null;
 
 async function draftStage(briefPath, prepared = null, repairNotes = "") {
   say(`drafting from ${briefPath}`);
@@ -19,6 +22,7 @@ async function draftStage(briefPath, prepared = null, repairNotes = "") {
     readBrief(briefPath), "out/runs", prepared, repairNotes,
   );
   say(`  wrote ${runDir}/page.html (${draftUsage.output_tokens} output tokens)`);
+  lastRunDir = runDir;
   return { runDir, context };
 }
 
@@ -97,4 +101,6 @@ try {
 } catch (failure) {
   process.stderr.write(`engine: ${failure.message}\n`);
   process.exitCode = 1;
+} finally {
+  transcript.flush(lastRunDir ?? (["qa", "bundle"].includes(command) ? target : null));
 }

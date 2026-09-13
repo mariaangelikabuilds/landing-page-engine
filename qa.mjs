@@ -539,10 +539,12 @@ ${pageRules}
 // Embedded images are megabytes of base64 that mean nothing to a reader of the markup.
 // Sent raw they took one review past 1.9M tokens against a 1M ceiling and killed the
 // pass outright. The reviewer needs to know an image is there, not what it encodes.
+// Fonts too: rules 1.6.0 embedded 150kb of woff2 per page and the review was reading
+// every byte of it, which is where the $0.44 reviews and the "terminated" streams came from.
 const withoutImageData = (pageHtml) =>
   pageHtml.replace(
-    /data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/gi,
-    (blob) => `data:image/…;base64,[${Math.round(blob.length / 1024)}kb elided]`,
+    /data:(image|font)\/[a-z0-9+.-]+;base64,[A-Za-z0-9+/=]+/gi,
+    (blob, kind) => `data:${kind}/…;base64,[${Math.round(blob.length / 1024)}kb ${kind} elided]`,
   );
 
 async function rulesReview(pageHtml, briefBody) {
