@@ -1,0 +1,28 @@
+{
+  "brand": "Kapeh",
+  "offer": "A coffee subscription for Metro Manila. Single-origin beans from Benguet and Sagada farms, roasted in Marikina every Monday and delivered anywhere in Metro Manila by Wednesday. PHP 890 per 250 gram bag, two or four bags a month, pause or cancel any time from a text message.",
+  "audience": "People who make pour-over or moka pot coffee at home, mostly 25 to 45, who are tired of supermarket beans that were roasted months ago and are curious about where Philippine coffee actually comes from. They already spend on coffee; they want it to be worth it.",
+  "voice": "Warm, specific, a little funny, never cute. Names the farm, the roast date and the altitude instead of saying artisanal. Short sentences. Never uses the word experience.",
+  "palette": [
+    "#1f3b2d",
+    "#f4efe6",
+    "#c8322b"
+  ],
+  "contact": {
+    "email": "hello@kapeh.ph",
+    "phone": "+63 917 555 0142"
+  },
+  "facts": [
+    "Beans from four farms: two in Benguet at 1,400 to 1,600 metres, two in Sagada at 1,500 metres",
+    "Roasted every Monday in Marikina; the roast date is printed on every bag",
+    "Delivered by Wednesday to all of Metro Manila, by Friday to Rizal, Cavite and Laguna",
+    "Farmers are paid PHP 380 per kilo of green beans, about double the local trader rate",
+    "1,140 active subscribers as of August 2026"
+  ],
+  "referenceUrl": null,
+  "fontUrl": null,
+  "imagery": [
+    "a roasting drum mid-batch in a small Marikina roastery, morning light through a roll-up door, beans in motion",
+    "a kitchen counter at six in the morning, a V60 mid-pour, steam, a bag of beans with the tag turned away from the camera"
+  ]
+}

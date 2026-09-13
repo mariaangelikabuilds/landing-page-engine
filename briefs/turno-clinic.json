@@ -1,0 +1,24 @@
+{
+  "brand": "Turno",
+  "offer": "Online booking, SMS reminders and a same-day waitlist for clinics with two to ten doctors. PHP 2,400 per clinic per month, every doctor and every front-desk seat included. Patient records export in the PhilHealth claims format. Fourteen day trial, no card needed.",
+  "audience": "Clinic owners and front-desk staff in Philippine cities who run appointments from a paper logbook and a Viber group, lose an hour a day to no-shows and reschedules, and have been burned by software that needed a consultant to set up.",
+  "voice": "Calm, exact, no startup energy. Explains what happens on Monday morning, not what the platform enables. Numbers over adjectives. Never says seamless, streamline or empower.",
+  "palette": [],
+  "contact": {
+    "email": "hello@turno.ph",
+    "phone": "+63 2 7100 4460"
+  },
+  "facts": [
+    "Used by 63 clinics across Metro Manila, Cebu and Davao",
+    "No-show rate across those clinics fell from 18 percent to 7 percent after SMS reminders went live",
+    "Set-up takes one afternoon; the front desk keeps the paper logbook for the first week",
+    "A same-day waitlist fills a cancelled slot in a median of 22 minutes",
+    "Data is stored in a Singapore data centre and exported on request, no lock-in"
+  ],
+  "referenceUrl": null,
+  "fontUrl": null,
+  "imagery": [
+    "a clinic reception in Quezon City at half past seven in the morning before opening, chairs empty, one phone on the desk, blinds half open",
+    "a doctor's desk with a monitor turned away from the camera, a stethoscope and a paper logbook, late afternoon light"
+  ]
+}

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DRAFT_MODEL, draftCompletion, usageCostUsd } from "./claude.mjs";
 import { resolveImages } from "./image.mjs";
@@ -53,6 +53,16 @@ only 24px+ (or bold 18.66px+) may use the 3:1 large-text minimum. When you pick
 an accent for a button, verify the pair mentally against near-white text and
 darken the accent until it clears; when in doubt, use dark text on the accent.
 
+The art direction names the hero headline, the single call to action and the
+single proof element. Above the fold at 1440 there is exactly one link that is
+a call to action (mailto:, tel: or http). A second button, a subtext paragraph
+or feature cards under the hero fail the gate. Set max-width in ch on p, li, dd
+and figcaption only, never on a wrapper: the wrapper is the grid, and a page
+whose sections all sit in one narrow left column with a dead band beside it
+fails. Never text-transform: uppercase with letter-spacing on small text, never
+font-variant: small-caps, never a numbered prefix on a heading. The theme the
+direction names is checked on the render: a light page is mostly light bands.
+
 Output only the HTML document. No markdown fences, no commentary before or
 after the doctype.
 
@@ -63,28 +73,54 @@ ${pageRules}
 // Direction, typefaces and photographs are the expensive half and none of them are what a
 // failed check is complaining about. Prepared once, reused by every repair attempt.
 export async function prepareRun(briefBody) {
-  const { direction, usage: directionUsage, costUsd: directionCostUsd } = await directPage(briefBody);
+  const { direction, usage: directionUsage, costUsd: directionCostUsd, retried: directionRetried } = await directPage(briefBody);
   process.stderr.write(
-    `  direction: ${direction.voiceWords.join(", ")} · ${direction.color.strategy} after ${direction.color.reference}\n` +
-      `  type: ${direction.type.displayFamily} / ${direction.type.bodyFamily}\n`,
+    `  direction: ${direction.voiceWords.join(", ")} · ${direction.lane} · ${direction.color.strategy} after ${direction.color.reference}\n` +
+      `  object: ${direction.physicalObject}\n` +
+      `  type: ${direction.type.displayFamily} / ${direction.type.bodyFamily} · hero: ${direction.hero.treatment}, ${direction.theme.mode}\n`,
   );
   const { styleBlock, embedded } = await embedFonts([
     { family: direction.type.displayFamily, weights: direction.type.displayWeights },
     { family: direction.type.bodyFamily, weights: direction.type.bodyWeights },
   ]);
   return {
-    direction, styleBlock, embedded, directionUsage, directionCostUsd,
+    direction, styleBlock, embedded, directionUsage, directionCostUsd, directionRetried,
     imageCache: new Map(),
   };
 }
 
-export async function draftPage(briefBody, outRoot = "out/runs", prepared = null, repairNotes = "") {
-  const runDir = join(outRoot, runSlug(briefBody.brand ?? "page"));
+// A repair writes into the same run directory: the attempt it replaces moves to attempts/
+// so nothing is orphaned and the ledger can count what a run actually cost.
+function shelveAttempt(runDir, kind) {
+  const previous = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
+  const n = (previous.attempts?.length ?? 0) + 1;
+  const shelf = join(runDir, "attempts", `${n}-${kind}`);
+  mkdirSync(shelf, { recursive: true });
+  for (const name of ["page.html", "qa-report.json", "qa-report.md", "judge.json", "page-1440.png", "page-375.png"]) {
+    if (existsSync(join(runDir, name))) renameSync(join(runDir, name), join(shelf, name));
+  }
+  let verdict = null, judgeSerious = null, reviewCostUsd = null, judgeCostUsd = null;
+  try {
+    const report = JSON.parse(readFileSync(join(shelf, "qa-report.json"), "utf8"));
+    verdict = report.verdict;
+    judgeSerious = report.judge?.serious?.length ?? null;
+    reviewCostUsd = report.claudeReview?.costUsd ?? null;
+    judgeCostUsd = report.judge?.costUsd ?? null;
+  } catch { /* an attempt that never reached qa */ }
+  return [
+    ...(previous.attempts ?? []),
+    { n, kind, verdict, judgeSerious, draftUsage: previous.draftUsage, draftCostUsd: previous.draftCostUsd, reviewCostUsd, judgeCostUsd, images: previous.images },
+  ];
+}
+
+export async function draftPage(briefBody, outRoot = "out/runs", prepared = null, repairNotes = "", options = {}) {
+  const runDir = options.runDir ?? join(outRoot, runSlug(briefBody.brand ?? "page"));
   mkdirSync(runDir, { recursive: true });
+  const attempts = options.runDir ? shelveAttempt(runDir, options.repairKind ?? "deterministic") : [];
 
   const startedAt = new Date().toISOString();
   const context = prepared ?? (await prepareRun(briefBody));
-  const { direction, styleBlock, embedded, directionUsage, directionCostUsd, imageCache } = context;
+  const { direction, styleBlock, embedded, directionUsage, directionCostUsd, directionRetried, imageCache } = context;
 
   const userPrompt = `${directionBrief(direction)}
 
@@ -97,6 +133,7 @@ ${JSON.stringify(briefBody, null, 2)}${repairNotes}`;
     injectFonts(stripAccidentalFences(draftText), styleBlock),
     briefBody,
     imageCache,
+    direction.imagery?.treatment ?? null,
   );
   writeFileSync(join(runDir, "page.html"), pageHtml);
   writeFileSync(
@@ -107,9 +144,11 @@ ${JSON.stringify(briefBody, null, 2)}${repairNotes}`;
         model: DRAFT_MODEL,
         startedAt,
         direction,
+        directionRetried,
         fonts: embedded,
         directionUsage,
         directionCostUsd,
+        attempts,
         draftUsage: usage,
         draftCostUsd: usageCostUsd(usage),
         // Image spend is not folded into costUsd: gpt-image-1 is priced per image, not

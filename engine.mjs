@@ -2,12 +2,15 @@
 import { draftPage, readBrief } from "./draft.mjs";
 import { qaRun } from "./qa.mjs";
 import { bundleRun } from "./bundle.mjs";
+import { judgeRun } from "./judge.mjs";
+import { runBrief } from "./run.mjs";
 import { captureOutput } from "./log.mjs";
 
 const usage = `usage:
-  node engine.mjs run <brief-file>     draft, qa, bundle in one pass
+  node engine.mjs run <brief-file>     direct, draft, gate, judge, repair, bundle in one pass
   node engine.mjs draft <brief-file>   draft only, prints the run dir
   node engine.mjs qa <run-dir>         deterministic checks + model review
+  node engine.mjs judge <run-dir>      composition judge on the rendered page, writes judge.json
   node engine.mjs bundle <run-dir>     write qa-report.md, append runs.jsonl
 `;
 
@@ -16,30 +19,12 @@ const transcript = captureOutput();
 const say = (line) => process.stdout.write(line + "\n");
 let lastRunDir = null;
 
-async function draftStage(briefPath, prepared = null, repairNotes = "") {
+async function draftStage(briefPath) {
   say(`drafting from ${briefPath}`);
-  const { runDir, usage: draftUsage, context } = await draftPage(
-    readBrief(briefPath), "out/runs", prepared, repairNotes,
-  );
+  const { runDir, usage: draftUsage } = await draftPage(readBrief(briefPath), "out/runs");
   say(`  wrote ${runDir}/page.html (${draftUsage.output_tokens} output tokens)`);
   lastRunDir = runDir;
-  return { runDir, context };
-}
-
-// A failing check already knows exactly what is wrong and where. Handing that back is
-// cheaper and more reliable than asking a person to run the command again, and it is the
-// difference between an engine that drafts and one that ships.
-const MAX_REPAIRS = 2;
-
-function repairNotes(qaReport) {
-  const failed = qaReport.deterministicChecks.filter((check) => !check.pass);
-  return `
-
-The previous attempt was REJECTED by the gate. Everything else about it was
-acceptable, so change only what these findings name, and keep the art direction,
-the palette, the typefaces and the section plan exactly as they are.
-
-${failed.map((check) => `- ${check.rule}: ${check.details}`).join("\n")}`;
+  return runDir;
 }
 
 async function qaStage(runDir) {
@@ -60,6 +45,18 @@ function bundleStage(runDir) {
   return ledgerLine;
 }
 
+// Advisory: prints what the judge saw and never sets the exit code.
+async function judgeStage(runDir) {
+  say(`judging ${runDir}`);
+  const report = await judgeRun(runDir);
+  for (const f of report.findings) {
+    say(`  ${f.severity}  ${f.rule} [${f.viewport}px tile ${f.tile}, ${f.section}]: ${f.reason}`);
+  }
+  say(`  ${report.overall}`);
+  const minor = report.findings.length - report.serious.length;
+  say(`  judge: ${report.serious.length} serious, ${minor} minor, $${report.costUsd.toFixed(4)}`);
+}
+
 // exitCode, never process.exit(): a hard exit races Playwright's pipe
 // teardown on Windows and crashes libuv instead of returning 1.
 try {
@@ -67,31 +64,19 @@ try {
     say(usage);
     process.exitCode = command ? 1 : 0;
   } else if (command === "run") {
-    let prepared = null;
-    let notes = "";
-    let runDir;
-    let qaReport;
-
-    for (let attempt = 0; attempt <= MAX_REPAIRS; attempt += 1) {
-      ({ runDir, context: prepared } = await draftStage(target, prepared, notes));
-      qaReport = await qaStage(runDir);
-      if (qaReport.verdict === "pass") {
-        if (attempt) say(`  passed after ${attempt} repair${attempt === 1 ? "" : "s"}`);
-        break;
-      }
-      if (attempt === MAX_REPAIRS) break;
-      notes = repairNotes(qaReport);
-      const named = qaReport.deterministicChecks.filter((c) => !c.pass).map((c) => c.rule);
-      say(`  repairing: ${named.join(", ")}`);
-    }
-
-    const ledgerLine = bundleStage(runDir);
+    // The loop lives in run.mjs so the MCP server runs the same one. `say` also tracks
+    // the run dir for the transcript, since a repair reuses it.
+    const { ledgerLine } = await runBrief(readBrief(target), {
+      say: (line) => { say(line); const hit = line.match(/out[\\/]runs[\\/][^\s/\\]+/); if (hit) lastRunDir = hit[0]; },
+    });
     process.exitCode = ledgerLine.verdict === "pass" ? 0 : 1;
   } else if (command === "draft") {
     await draftStage(target);
   } else if (command === "qa") {
     const qaReport = await qaStage(target);
     process.exitCode = qaReport.verdict === "pass" ? 0 : 1;
+  } else if (command === "judge") {
+    await judgeStage(target);
   } else if (command === "bundle") {
     bundleStage(target);
   } else {
@@ -102,5 +87,5 @@ try {
   process.stderr.write(`engine: ${failure.message}\n`);
   process.exitCode = 1;
 } finally {
-  transcript.flush(lastRunDir ?? (["qa", "bundle"].includes(command) ? target : null));
+  transcript.flush(lastRunDir ?? (["qa", "judge", "bundle"].includes(command) ? target : null));
 }

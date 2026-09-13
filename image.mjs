@@ -146,7 +146,7 @@ async function reencode(browser, dataUri) {
 // Returns the page with placeholders replaced, plus a record for run.json. Requests run
 // one at a time on purpose: three concurrent image calls is a good way to hit a rate
 // limit and lose a whole draft over a decoration.
-export async function resolveImages(pageHtml, briefBody, cache = new Map()) {
+export async function resolveImages(pageHtml, briefBody, cache = new Map(), photoDirection = null) {
   const asked = [...pageHtml.matchAll(PLACEHOLDER)].map((hit) => hit[1]);
   if (!asked.length) return { pageHtml, images: [] };
 
@@ -170,7 +170,9 @@ export async function resolveImages(pageHtml, briefBody, cache = new Map()) {
       }
       const startedAt = Date.now();
       try {
-        const raw = await generateOne(description, briefBody?.voice);
+        // The art direction's photographic treatment, when there is one; the copy voice was
+        // what used to reach the image model, and it is prose instructions in a picture prompt.
+        const raw = await generateOne(description, photoDirection ?? briefBody?.voice);
         const dataUri = await reencode(browser, raw);
         resolved.set(description, dataUri);
         images.push({

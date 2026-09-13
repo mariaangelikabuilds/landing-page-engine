@@ -7,7 +7,7 @@
     "page-engine": "./engine.mjs"
   },
   "scripts": {
-    "run-demo": "node engine.mjs run briefs/demo-brief.json",
+    "run-demo": "node engine.mjs run briefs/salcedo-systems.json",
     "evals": "node evals/run_evals.mjs"
   },
   "dependencies": {

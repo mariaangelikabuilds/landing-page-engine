@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "playwright";
+import { compositionChecks, compositionMetrics } from "./qa-composition.mjs";
 import { reviewCompletion, usageCostUsd } from "./claude.mjs";
 
 const pageRules = readFileSync(
@@ -19,33 +20,47 @@ const PHONE = { width: 375, height: 812 };
 // without spending a review token: every check here is local, so the suite runs
 // offline and free.
 export async function deterministicGate(runDir) {
+  return (await deterministicGateFull(runDir)).checks;
+}
+
+// The composition metrics ride along with the checks: advisory entries never decide a
+// verdict, but the report keeps them so a page's composition can be read back later.
+export async function deterministicGateFull(runDir) {
   const pageHtml = readFileSync(join(runDir, "page.html"), "utf8");
   const runRecord = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
   const allowedFontHosts = fontHosts(runRecord.brief.fontUrl);
+  const rendered = await renderChecks(runDir, runRecord.direction);
 
-  return [
-    documentCheck(pageHtml),
-    selfContainmentCheck(pageHtml, allowedFontHosts),
-    contactIntegrityCheck(pageHtml, runRecord.brief),
-    paletteFidelityCheck(pageHtml, runRecord.brief),
-    typeDirectedCheck(pageHtml, runRecord.direction),
-    imageryResolvedCheck(pageHtml),
-    sideStripeCheck(pageHtml),
-    pageWeightCheck(pageHtml),
-    await linkAuditCheck(pageHtml),
-    ...(await renderChecks(runDir)),
-  ];
+  return {
+    checks: [
+      documentCheck(pageHtml),
+      selfContainmentCheck(pageHtml, allowedFontHosts),
+      contactIntegrityCheck(pageHtml, runRecord.brief),
+      paletteFidelityCheck(pageHtml, runRecord.brief),
+      typeDirectedCheck(pageHtml, runRecord.direction),
+      imageryResolvedCheck(pageHtml),
+      sideStripeCheck(pageHtml),
+      pageWeightCheck(pageHtml),
+      await linkAuditCheck(pageHtml),
+      ...rendered.checks,
+    ],
+    advisory: rendered.advisory,
+    metrics: rendered.metrics,
+  };
 }
 
 export async function qaRun(runDir) {
   const pageHtml = readFileSync(join(runDir, "page.html"), "utf8");
   const runRecord = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
 
-  const deterministicChecks = await deterministicGate(runDir);
+  const { checks: deterministicChecks, advisory, metrics } = await deterministicGateFull(runDir);
   // Progress goes to stderr: mcp-server.mjs runs this over stdio, where
   // stdout carries the JSON-RPC stream and must stay clean.
   for (const check of deterministicChecks) {
     process.stderr.write(`  ${check.pass ? "pass" : "FAIL"}  ${check.name}\n`);
+  }
+  for (const note of advisory) {
+    process.stderr.write(`  info  ${note.rule}: ${note.details}\n`);
   }
 
   // The review is advisory by design; if it errors, the run keeps its
@@ -66,6 +81,8 @@ export async function qaRun(runDir) {
     checkedAt: new Date().toISOString(),
     verdict: deterministicChecks.every((check) => check.pass) ? "pass" : "fail",
     deterministicChecks,
+    compositionAdvisory: advisory,
+    compositionMetrics: metrics,
     claudeReview,
   };
   writeFileSync(join(runDir, "qa-report.json"), JSON.stringify(qaReport, null, 2));
@@ -407,13 +424,19 @@ async function motionVisibleCheck(page, pageUrl) {
   };
 }
 
-async function renderChecks(runDir) {
+async function renderChecks(runDir, direction) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: DESKTOP });
     const pageUrl = pathToFileURL(join(runDir, "page.html")).href;
     await page.goto(pageUrl);
     await capture(page, join(runDir, "page-1440.png"));
+
+    // Composition is measured on the settled desktop render. It scrolls and briefly
+    // resizes to 375, then restores 1440; the motion check reloads the page after it,
+    // so nothing it does leaks into the checks below.
+    const metrics = await compositionMetrics(page);
+    const composition = compositionChecks(metrics, direction);
 
     const motionCheck = await motionVisibleCheck(page, pageUrl);
 
@@ -450,7 +473,7 @@ async function renderChecks(runDir) {
       return contentWidth - window.innerWidth;
     });
 
-    return [
+    const checks = [
       {
         name: "no horizontal overflow at 375px",
         rule: "responsive",
@@ -469,7 +492,9 @@ async function renderChecks(runDir) {
       },
       copyTellsCheck(renderedCopy),
       motionCheck,
+      ...composition.gate,
     ];
+    return { checks, advisory: composition.advisory, metrics };
   } finally {
     await browser.close();
   }

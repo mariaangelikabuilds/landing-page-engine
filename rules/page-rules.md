@@ -1,6 +1,6 @@
 # Page Rules
 
-Version 1.6.0 (2026-08-17)
+Version 2.0.0 (2026-09-14)
 
 Every drafted page is written against this file, and the review pass cites these IDs
 when it flags a violation. Rules marked **gate** are also enforced by deterministic
@@ -52,6 +52,16 @@ checks in `qa.mjs`; the model review is advisory and never decides pass/fail on 
   testimonial band, then a footer CTA. Structure follows the brief's content.
 - `no-section-rhythm`: Do not repeat one visual formula per section (label, heading,
   lead paragraph, card grid). Vary density and composition; let content dictate form.
+- `hero-cta` (gate): The hero is a conversion surface. Its headline states the outcome
+  for the buyer, it carries exactly one call to action (a `mailto:`, `tel:` or `http`
+  link) and one proof element from the brief's facts, and nothing else sits above the
+  fold: no subtext paragraph, no second button, no feature cards. Measured on the render:
+  exactly one such link inside `main` within the first 900px at 1440, and at least one
+  within the first 812px at 375. A page with none is a brochure; a page with two is
+  hedging.
+- `no-card-grid`: A grid of equal boxes is never the default container for a list. Use
+  the kit in `container-variety`. Cards, when they appear at all, are the deliberate
+  exception and never carry an icon, a heading and two lines each.
 
 ## Composition
 
@@ -63,11 +73,21 @@ plus paragraph, repeated down the page, with a third of the viewport left empty.
   narrow column with a large dead band beside it. Either commit to the full width with
   full-bleed bands and multi-column blocks, or commit to a centred measure with balanced
   margins. A left-aligned column with empty space only on the right is the defect.
-  Advisory, not a gate: I tried to measure it as leftmost-to-rightmost content span over
-  viewport width and calibrated on four real runs. A page judged badly composed scored
-  63.3 percent, identical to one judged well composed, because full-bleed bands and wide
-  headers mask a stranded column. The metric did not discriminate, so it is not in the
-  gate. Composition is judgement, and this file is where judgement is written down.
+  Measured, advisory. The first attempt (1.3.0) measured leftmost-to-rightmost content
+  span over viewport width on element boxes and did not discriminate: a badly composed
+  page and a well composed one both scored 63.3 percent, because a block-level heading
+  inside a 1200px wrapper reports its right edge at the wrapper even when its text ends
+  a third of the way across. The 2.0.0 metric measures text ink instead (the client
+  rects of the text itself, plus images): a section is stranded when its ink starts in
+  the left 30 percent of the viewport and the dead band on the right is 20 percent of
+  the viewport wider than the left margin. Re-measured that way the same section reads
+  0.12 to 0.62 instead of 0.88. On the nineteen runs on record the page the owner called
+  bad had two stranded sections of six and the page the review called bad had three of
+  eight with two consecutive; it also fires on eight pages nobody has judged. Two
+  labelled points are not a calibration, so `stranded-column` ships as an advisory
+  metric with its number in every report and is promoted to a gate only when the labels
+  in `evals/labels.json` say it fails every bad page and no good one. The vision judge
+  reads the render for the same defect in the meantime.
 - `container-variety`: Build from a kit of containers and do not use any one shape more
   than twice. Available shapes, none of them cards: a full-bleed band, an asymmetric
   two-column split where the columns are deliberately unequal, a definition list of term
@@ -77,17 +97,23 @@ plus paragraph, repeated down the page, with a third of the viewport left empty.
 - `grid-break`: At least one section departs from the page's dominant grid. Bleed to an
   edge, overlap two blocks, run type oversized, or go off-axis. One is enough, and one
   is required. Without it the page reads as output from a layout library.
-- `type-scale`: The largest and smallest type differ by at least a factor of four, and the
-  sizes form a visible scale rather than a crowd. Six or so distinct sizes is normal once a
+- `type-scale` (gate): The largest and smallest type differ by at least a factor of four, and the
+  sizes form a visible scale rather than a crowd. Measured on the render: at least five
+  distinct sizes and a max-to-min ratio of four or more. Every page since 1.3.0 measures
+  5.1 to 8.5; the pre-composition pages measured 2.1 to 3.1, so this is a floor against
+  regression rather than a taste test, and it says so. Six or so distinct sizes is normal once a
   page has a headline, a section heading, a lede, body, a caption and a figure. Two ratios,
   not one: about 1.2 at 375px and about 1.333 at 1440px, interpolated with `clamp()`. A
   flat 1.1 scale reads as uncommitted; 1.5 and above starves the middle of the page. The
   scale is a tool and not a law, so one deliberate off-scale size is allowed where it
   looks better. Hierarchy comes from scale, weight and colour, never from decorative
   italic, tracked-out caps, or a rule above a heading.
-- `type-measure`: Body copy sits between 45 and 75 characters per line, 60ch as the
-  working ceiling. Set the measure on the text element, never on a wrapper that then
-  constrains unrelated content. Body size 16px and up; line-height moves inversely to
+- `type-measure` (gate): Body copy sits between 45 and 75 characters per line, 60ch as the
+  working ceiling. Set the measure on the text element (`p`, `li`, `dd`, `figcaption`),
+  never on a wrapper that then constrains unrelated content: the wrapper is the grid.
+  Measured on the render as characters per line from the element's own font metrics;
+  the gate fails above 80 because average-character width runs about fifteen percent
+  under `ch`. Pages since 1.3.0 measure 55 to 78; the pre-composition pages 82 to 117. Body size 16px and up; line-height moves inversely to
   size, roughly 1.45 to 1.6 for body and 1.0 to 1.15 for display. Weight steps are at
   least 200 apart, so 400 against 700, never 500 against 600.
 - `spacing-ratio`: Space between sections is at least twice the space inside them, which
@@ -99,8 +125,16 @@ plus paragraph, repeated down the page, with a third of the viewport left empty.
 - `density-variation`: Sections do not all breathe the same. At least one is tight and
   data-dense, at least one is generous and near-empty. Uniform vertical padding down the
   whole page is the rhythm tell in spacing form.
-- `no-decorative-labels`: No tracked-out all-caps kicker labels, no numbered section
-  prefixes.
+- `no-decorative-labels` (gate): No tracked-out all-caps kicker labels, no small caps, no
+  numbered section prefixes, no decorative italic. Measured on the render: any visible
+  text under 15px set in uppercase with letter-spacing, any `font-variant: small-caps`,
+  or a heading beginning with a number and a separator fails. The page the owner called
+  generated on 2026-09-13 carried twelve small-caps labels and zero uppercase ones,
+  which is why small caps are named.
+- `theme-mode` (gate): The direction names light or dark from a physical scene, and the
+  rendered page agrees: the mode is dark when sections with a background luminance under
+  0.4 cover more than half the section area. A "light" direction rendered as a dark hero
+  band over a dark footer band fails. Brown and orange are never page-scale grounds.
 - `no-side-stripe` (gate): No single-edge accent stripe. A `border-left` or `border-right`
   thicker than a hairline, on a card, callout, list item or blockquote, is the most
   recognisable generated-UI pattern in existence. A 1px rule is a rule and is fine.
@@ -156,8 +190,9 @@ limitation: transitions, keyframes, and scroll-driven animations
   family, and do not add a third family.
 - `contrast-aa` (gate, via axe): All text meets WCAG 2.1 AA contrast. Check hover
   and focus states too.
-- `no-stock-effects`: No glassmorphism, gradient text, bento grids, marquee logo
-  strips, typewriter headlines, or emoji used as icons.
+- `no-stock-effects`: No glassmorphism, gradient text, purple-to-blue or violet-to-indigo
+  gradients, bento grids, marquee logo strips, typewriter headlines, spotlight-cursor
+  cards, or emoji used as icons.
 - `imagery-resolved` (gate): Photographs are requested, not linked. Write
   `<img src="{{IMAGE: what the photograph shows}}" alt="...">` and the pipeline replaces
   each placeholder with an embedded image before QA runs, so the page stays one file.
@@ -178,6 +213,28 @@ limitation: transitions, keyframes, and scroll-driven animations
   decorative images carry `alt=""`.
 
 ## Change log
+
+- 2.0.0: The art direction stage owns the look, and the gate can see it. Four directed
+  runs of one brief had converged on a laminated log in Courier Prime, "unhurried" four
+  times out of four, because the direction prompt's example objects were all typewritten
+  paper and its anchors were all text-forward restraint; the reject list caught the
+  first reflex and nothing caught the second. The direction now names a material, a lane
+  from a fixed list, the document it would have become and refuses it, and the last four
+  directions for a brand are fed back as spent; the document lane and typewritten paper
+  are refused in code the way fonts are. The direction also owns the hero (outcome
+  headline, one call to action, one proof), the grid, the section that breaks it, a
+  density map, each photograph's placement and a photographic treatment that replaces
+  the copy voice in the image prompt. Five composition rules became gates after being
+  measured on the nineteen runs on record: `hero-cta`, `no-decorative-labels`,
+  `type-measure`, `type-scale`, `theme-mode`. `canvas-use` was re-measured on text ink
+  instead of element boxes and ships as the advisory `stranded-column` metric with its
+  numbers in every report, pending labels. A composition judge now looks at the rendered
+  page as screenshot tiles and its serious findings buy up to two layout repairs, which
+  may move the grid but not the palette, the type or the copy; the deterministic verdict
+  is still the verdict. Housekeeping the same day: the review was reading 150kb of
+  embedded woff2 per page, which is where the $0.44 reviews and the dropped streams came
+  from; fonts are now elided like images, streams retry, and an errored review is
+  reported as an error rather than as zero findings.
 
 - 1.6.0: An art direction stage now runs before drafting. The rules could say what a page
   must not be and never made a decision, so pages passed every check and stayed dull. The

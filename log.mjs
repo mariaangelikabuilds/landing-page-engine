@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Everything the engine prints is also kept, so a run directory carries its own terminal
@@ -16,7 +16,9 @@ export function captureOutput() {
   return {
     flush(runDir) {
       if (!runDir) return;
-      writeFileSync(join(runDir, "run.log"), lines.join(""));
+      // Appended, not overwritten: `qa` and `bundle` are separate invocations on one run dir.
+      appendFileSync(join(runDir, "run.log"), `# ${new Date().toISOString()} ${process.argv.slice(2).join(" ")}
+${lines.join("")}`);
     },
   };
 }
