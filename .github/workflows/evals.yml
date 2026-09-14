@@ -8,6 +8,10 @@ on:
   pull_request:
     paths:
       - "qa.mjs"
+      - "qa-composition.mjs"
+      - "run.mjs"
+      - "judge.mjs"
+      - "tiles.mjs"
       - "evals/**"
       - "rules/**"
       - ".github/workflows/evals.yml"
