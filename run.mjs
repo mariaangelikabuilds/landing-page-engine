@@ -24,7 +24,8 @@ function deterministicNotes(qaReport) {
 
 The previous attempt was REJECTED by the gate. Everything else about it was
 acceptable, so change only what these findings name, and keep the art direction,
-the palette, the typefaces and the section plan exactly as they are.
+the palette, the typefaces, the section plan and every sentence of copy exactly
+as they are, unless a finding below quotes that sentence.
 
 ${failed.map((check) => `- ${check.rule}: ${check.details}`).join("\n")}`;
 }

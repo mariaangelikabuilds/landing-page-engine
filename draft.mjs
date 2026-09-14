@@ -71,7 +71,9 @@ data block; never as a row of oversized numerals with small labels under them,
 which is the most cloned block in the category and fails the judge.
 A horizontal row of figures, columns or split content wraps or stacks below
 700px (grid with auto-fit and a minmax floor, or flex-wrap); never a fixed
-column count or a fixed pixel width that outruns a 375px viewport.
+column count or a fixed pixel width that outruns a 375px viewport. A table
+with more than two columns sits inside a wrapper with overflow-x: auto, or its
+rows become stacked blocks below 700px; a bare table is the usual 375px overflow.
 Never draw a decorative block: no repeating-linear-gradient mesh, no pattern,
 no texture, no empty tinted box standing in for a photograph. A split section's
 other half is a photograph from the brief, a figure built from the brief's
