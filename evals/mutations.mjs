@@ -170,9 +170,9 @@ export const MUTATIONS = [
   {
     id: "flat-type-scale",
     rule: "type-scale",
-    defect: "every heading forced to body size, so the page has no scale",
+    defect: "every element forced to one size, so the page has no scale",
     apply: (pageHtml) =>
-      injectBeforeBodyEnd(pageHtml, "<style>h1,h2,h3,h4,h5,h6{font-size:18px!important}</style>"),
+      injectBeforeBodyEnd(pageHtml, "<style>body *{font-size:18px!important}</style>"),
   },
   {
     id: "tracked-caps-label",
@@ -222,7 +222,7 @@ export const MUTATIONS = [
     id: "theme-mode-flip",
     rule: "theme-mode",
     defect: "the direction on record says the opposite theme from the one the page renders",
-    apply: (pageHtml) => `${pageHtml}<!-- theme-mode-flip: page unchanged, run.json patched -->`,
+    apply: (pageHtml) => pageHtml.replace(/<\/html>\s*$/i, "<!-- theme-mode-flip: page unchanged, run.json patched --></html>\n"),
     run: (runRecord) => ({
       ...runRecord,
       direction: {

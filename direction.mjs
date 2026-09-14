@@ -228,24 +228,36 @@ const slugOf = (brand) => String(brand ?? "page").toLowerCase().replace(/[^a-z0-
 
 // What this brand has already been given. The convergence was four runs deep before anyone
 // noticed; the prompt now sees the last four directions and the code refuses a repeat.
+// Two memories: this brand's last four directions (refused on repeat) and the latest
+// direction of every other brand (refused on repeat too, so three briefs cannot all come
+// back photographic in Overpass, which is what the first three 2.0.0 runs did).
+function readDirection(outRoot, dir) {
+  try { return JSON.parse(readFileSync(join(outRoot, dir, "run.json"), "utf8")).direction ?? null; } catch { return null; }
+}
+
+const unique = (list) => [...new Set(list.map((s) => String(s).trim().toLowerCase()))];
+const summarise = (directions) => ({
+  fonts: unique(directions.flatMap((d) => [d.type?.displayFamily, d.type?.bodyFamily].filter(Boolean))),
+  voiceWords: unique(directions.flatMap((d) => d.voiceWords ?? [])),
+  lanes: unique(directions.map((d) => d.lane).filter(Boolean)),
+  objects: directions.map((d) => d.physicalObject).filter(Boolean),
+});
+
 export function recentChoices(brand, outRoot = "out/runs", limit = 4) {
-  if (!existsSync(outRoot)) return { fonts: [], voiceWords: [], objects: [] };
+  const empty = { fonts: [], voiceWords: [], lanes: [], objects: [] };
+  if (!existsSync(outRoot)) return { ...empty, elsewhere: empty };
   const suffix = `-${slugOf(brand)}`;
-  const directions = readdirSync(outRoot)
-    .filter((dir) => dir.endsWith(suffix))
-    .sort()
-    .reverse()
-    .map((dir) => {
-      try { return JSON.parse(readFileSync(join(outRoot, dir, "run.json"), "utf8")).direction ?? null; } catch { return null; }
-    })
-    .filter(Boolean)
-    .slice(0, limit);
-  const unique = (list) => [...new Set(list.map((s) => String(s).trim().toLowerCase()))];
-  return {
-    fonts: unique(directions.flatMap((d) => [d.type?.displayFamily, d.type?.bodyFamily].filter(Boolean))),
-    voiceWords: unique(directions.flatMap((d) => d.voiceWords ?? [])),
-    objects: directions.map((d) => d.physicalObject).filter(Boolean),
-  };
+  const dirs = readdirSync(outRoot).sort().reverse();
+  const own = dirs.filter((dir) => dir.endsWith(suffix)).map((dir) => readDirection(outRoot, dir)).filter(Boolean).slice(0, limit);
+  const latestOfOthers = new Map();
+  for (const dir of dirs) {
+    if (dir.endsWith(suffix)) continue;
+    const otherBrand = dir.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-/, "");
+    if (latestOfOthers.has(otherBrand)) continue;
+    const direction = readDirection(outRoot, dir);
+    if (direction?.lane) latestOfOthers.set(otherBrand, direction);
+  }
+  return { ...summarise(own), elsewhere: summarise([...latestOfOthers.values()]) };
 }
 
 // Every reason a direction is refused, as sentences the model can act on. The reject lists
@@ -259,6 +271,12 @@ export function refusals(direction, used) {
   if (usedFont.length) reasons.push(`font(s) already used for this brand: ${usedFont.join(", ")}`);
   const usedVoice = direction.voiceWords.map((w) => w.trim().toLowerCase()).filter((w) => used.voiceWords.includes(w));
   if (usedVoice.length) reasons.push(`voice word(s) already used for this brand: ${usedVoice.join(", ")}`);
+  const elsewhere = used.elsewhere ?? { fonts: [], voiceWords: [], lanes: [] };
+  const otherFont = families.filter((f) => elsewhere.fonts.includes(f));
+  if (otherFont.length) reasons.push(`font(s) already carrying another brand: ${otherFont.join(", ")}`);
+  const otherVoice = direction.voiceWords.map((w) => w.trim().toLowerCase()).filter((w) => elsewhere.voiceWords.includes(w));
+  if (otherVoice.length) reasons.push(`voice word(s) already describing another brand: ${otherVoice.join(", ")}`);
+  if (elsewhere.lanes.includes(direction.lane)) reasons.push(`lane "${direction.lane}" is the lane another brand already has; each brand gets its own`);
   if (direction.lane === "document") reasons.push(`lane "document" is the second-order reflex`);
   const surface = `${direction.physicalObject} ${direction.material} ${direction.aestheticLane}`;
   const doc = surface.match(DOCUMENT_REFLEX);
@@ -276,9 +294,9 @@ export function refusals(direction, used) {
 
 export async function directPage(briefBody, { outRoot = "out/runs" } = {}) {
   const used = recentChoices(briefBody.brand, outRoot);
-  const spent = used.fonts.length || used.voiceWords.length
-    ? `\n\nALREADY USED FOR THIS BRAND, do not repeat any of these:\nfonts: ${used.fonts.join(", ") || "none"}\nvoice words: ${used.voiceWords.join(", ") || "none"}\nobjects: ${used.objects.join("; ") || "none"}`
-    : "";
+  const list = (l) => l.join(", ") || "none";
+  const spent = `\n\nALREADY USED FOR THIS BRAND, do not repeat any of these:\nfonts: ${list(used.fonts)}\nvoice words: ${list(used.voiceWords)}\nobjects: ${list(used.objects.map((o) => o.slice(0, 60)))}` +
+    `\n\nALREADY CARRYING OTHER BRANDS, do not repeat any of these either (each brand gets its own lane, fonts and voice):\nlanes: ${list(used.elsewhere.lanes)}\nfonts: ${list(used.elsewhere.fonts)}\nvoice words: ${list(used.elsewhere.voiceWords)}`;
   let userPrompt = `Direct the landing page for this brief:\n\n${JSON.stringify(briefBody, null, 2)}${spent}`;
   let totalUsage = null;
 

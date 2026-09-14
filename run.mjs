@@ -10,7 +10,9 @@ import { bundleRun } from "./bundle.mjs";
 // is repaired first (cheap, exact), and only a page that passes the gate is shown to the
 // composition judge, whose serious findings can buy up to two layout repairs. The verdict
 // never reads the judge.
-const MAX_DETERMINISTIC_REPAIRS = 2;
+// Three, not two: at medium effort a draft is $0.15, and the third repair is where a
+// contrast fix that surfaced a second contrast fault gets closed.
+const MAX_DETERMINISTIC_REPAIRS = 3;
 const MAX_COMPOSITION_REPAIRS = 2;
 
 // A failing check already knows exactly what is wrong and where. Handing that back is

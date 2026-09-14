@@ -3,12 +3,12 @@
 Written by `npm run evals`. Do not edit by hand. CI regenerates it and fails on a diff,
 so this file and the code cannot drift apart.
 
-The golden page is a real run that passed 6/6 (`2026-07-15T19-21-30-salcedo-systems`).
+The golden page is a real run that passed the full gate (`2026-09-14T02-41-18-salcedo-systems`).
 Each mutation injects exactly one defect into it and names the check that should fire.
 
-**Detection: 14/14 (100%).
+**Detection: 21/22 (95%).
 False fails on the clean page: 0.
-Collateral failures across all mutants: 0.**
+Collateral failures across all mutants: 1.**
 
 | mutation | target check | result | also failed |
 |----------|--------------|--------|-------------|
@@ -26,6 +26,14 @@ Collateral failures across all mutants: 0.**
 | `accent-swapped` | palette-from-brief | caught | none |
 | `entrance-never-resolves` | motion-visible | caught | none |
 | `reduced-motion-hides-content` | motion-visible | caught | none |
+| `long-measure` | type-measure | caught | none |
+| `flat-type-scale` | type-scale | MISSED | none |
+| `tracked-caps-label` | no-decorative-labels | caught | none |
+| `small-caps-label` | no-decorative-labels | caught | none |
+| `numbered-heading` | no-decorative-labels | caught | none |
+| `no-hero-cta` | hero-cta | caught | none |
+| `two-hero-ctas` | hero-cta | caught | none |
+| `theme-mode-flip` | theme-mode | caught | valid-document |
 
 "Also failed" measures whether a defect trips checks it has no business tripping.
 Zero means each check is independent, so a failure names its own cause.
@@ -36,6 +44,8 @@ Not scored. Recorded so this states the gate's edges rather than implying it has
 
 - **unsourced-copy-claims**: a claim in the copy that appears nowhere in the brief, such as the drafter's invented "the keys stay with you" and "no term, no penalty"
   Missed because checking a sentence against a brief is a judgement, not a comparison; nothing deterministic can decide it. Caught instead by the advisory review pass, which is why that pass exists.
+- **composition-beyond-the-measurable**: a page that is stranded in one column, or repeats one formula down the page, or wears the stock skeleton in a new dress, while clearing every measurable check
+  Missed because the ink-based metrics catch what they name (a stranded section, a flat scale, a long measure, a missing call to action) and nothing else; whether a page is well composed is still a judgement. Caught instead by the composition judge, which looks at the rendered tiles and can buy two layout repairs, and never decides the verdict.
 
 ## Method
 

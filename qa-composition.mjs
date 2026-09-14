@@ -128,7 +128,7 @@ function collectRaw() {
   const sectionElements = () => {
     const top = [...document.querySelectorAll("section")].filter((s) => !s.parentElement.closest("section"));
     if (top.length >= 3) return top;
-    const root = document.querySelector("main") || document.body;
+    const root = document.body;
     return [...root.children].filter((el) => isVisible(el) && el.getBoundingClientRect().height > 40);
   };
   const viewportWidth = document.documentElement.clientWidth;
@@ -182,10 +182,11 @@ function collectRaw() {
   return { viewportWidth, sections, ink: inkRects(), textElements, headings, ctas: collectCtasIn(document) };
 
   function collectCtasIn(doc) {
-    const root = doc.querySelector("main") || doc.body;
+    const root = doc.body; // the hero sits in <header> as often as in <main>
     return [...root.querySelectorAll("a[href]")]
       .filter((a) => /^(mailto:|tel:|https?:)/i.test(a.getAttribute("href")))
-      .filter((a) => !a.closest("header,nav,footer") && isVisible(a))
+      // A hero inside <header> is the common case; only nav and footer are chrome.
+      .filter((a) => !a.closest("nav,footer") && isVisible(a))
       .map((a) => ({ href: a.getAttribute("href"), top: a.getBoundingClientRect().top + window.scrollY }));
   }
 }
@@ -195,10 +196,10 @@ async function collectCtas() {
   await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
   const isVisible = (el) =>
     el.checkVisibility({ opacityProperty: true, visibilityProperty: true, contentVisibilityAuto: true });
-  const root = document.querySelector("main") || document.body;
+  const root = document.body;
   return [...root.querySelectorAll("a[href]")]
     .filter((a) => /^(mailto:|tel:|https?:)/i.test(a.getAttribute("href")))
-    .filter((a) => !a.closest("header,nav,footer") && isVisible(a))
+    .filter((a) => !a.closest("nav,footer") && isVisible(a))
     .map((a) => ({ href: a.getAttribute("href"), top: a.getBoundingClientRect().top + window.scrollY }));
 }
 

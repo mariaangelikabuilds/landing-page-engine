@@ -20,21 +20,262 @@
       "Backups are encrypted before they leave the office; Salcedo staff cannot read file contents"
     ],
     "referenceUrl": null,
-    "fontUrl": null
+    "fontUrl": null,
+    "imagery": [
+      "the inside of a small Manila server room at night, two racks, cabling visible, lit only by equipment LEDs and one overhead fluorescent",
+      "a quiet law office at dusk after everyone has left, desks with closed laptops, warm lamp light through a window"
+    ]
   },
   "model": "claude-sonnet-5",
-  "startedAt": "2026-07-15T19:21:30.261Z",
+  "startedAt": "2026-09-14T02:41:18.917Z",
+  "direction": {
+    "voiceWords": [
+      "brass-fitted",
+      "matte-grey",
+      "cool-lit"
+    ],
+    "physicalObject": "a squat fireproof data safe bolted to an office floor",
+    "material": "powder-coated welded steel, matte grey, with a recessed steel handle and a mechanical combination dial",
+    "lane": "photographic",
+    "reflexRejected": {
+      "fonts": [
+        "IBM Plex Mono",
+        "Space Grotesk",
+        "Fraunces"
+      ],
+      "lane": "editorial",
+      "palette": "navy and teal, the default palette assigned to anything security or IT-adjacent",
+      "secondOrder": "a laminated server maintenance log or asset checklist, the document reflex for anything technical and regulated"
+    },
+    "aestheticLane": "photographic, object-anchored, unhurried — two real rooms carry the page instead of icons or stat walls",
+    "inverseTest": {
+      "competitorSentence": "A backup-service landing page with a hero stat wall (99.99% uptime, 24/7 monitoring, bank-grade encryption) over a pricing table and three feature cards with lock icons.",
+      "whyThisIsNotThat": "This page has one photograph of the actual server room, one photograph of an actual client office, one CTA, and one proof fact from a real drill — no icon grid, no invented uptime number, no tiers."
+    },
+    "theme": {
+      "mode": "dark",
+      "scene": "An office manager reads this at 6pm after everyone else has left, laptop closed, in the last warm light before dark, wondering whether tonight's backup will actually run."
+    },
+    "color": {
+      "reference": "the navy-and-rust livery of 1980s Philippine Airlines ground equipment — utilitarian, official, unbranded-feeling",
+      "strategy": "committed",
+      "roles": [
+        {
+          "name": "deep navy ground",
+          "oklch": "#1b3a4b",
+          "use": "dominant background surface across hero and most sections, roughly half the page"
+        },
+        {
+          "name": "cream text and panel",
+          "oklch": "#e8e3d8",
+          "use": "body copy, section panels, reversed-out headline type"
+        },
+        {
+          "name": "rust accent",
+          "oklch": "#c1502e",
+          "use": "single CTA, section rules, the one proof number — under 10% of surface"
+        },
+        {
+          "name": "near-black navy shadow",
+          "oklch": "oklch(0.22 0.03 240)",
+          "use": "deepest shadow tone in the hero photograph gradient and footer band"
+        },
+        {
+          "name": "warm bone highlight",
+          "oklch": "oklch(0.94 0.02 80)",
+          "use": "hairline borders on the bordered data block"
+        }
+      ]
+    },
+    "type": {
+      "displayFamily": "Oswald",
+      "displayWeights": [
+        500,
+        700
+      ],
+      "bodyFamily": "Overpass",
+      "bodyWeights": [
+        400,
+        600
+      ],
+      "pairingReason": "Both typefaces come out of signage and highway-marking lineages — condensed, engineered, no ornament — which matches a steel safe and an engineer who states facts and stops talking.",
+      "scaleRatio": 1.414
+    },
+    "hero": {
+      "treatment": "photo-full-bleed",
+      "headline": "Backups that actually restore. Four-hour recovery, in writing.",
+      "cta": {
+        "label": "Email hello@salcedosystems.ph",
+        "target": "email"
+      },
+      "proof": "Last quarterly drill: 100% of sampled files recovered, average 41 minutes.",
+      "imageIndex": 0
+    },
+    "composition": {
+      "grid": "12 columns, 24px gutter; reading measure sits in columns 2 through 7; columns 8 through 12 carry photography, figures, or the bordered data block",
+      "asymmetry": "weighted right — the right two-thirds of most sections carries a photograph or a data block, because the offer's proof is a real room and a real drill result, not a claim that needs framing",
+      "breakSection": "Proof",
+      "densityMap": [
+        {
+          "section": "Hero",
+          "density": "airy"
+        },
+        {
+          "section": "Problem",
+          "density": "normal"
+        },
+        {
+          "section": "How it works",
+          "density": "tight"
+        },
+        {
+          "section": "Numbers",
+          "density": "normal"
+        },
+        {
+          "section": "Proof",
+          "density": "airy"
+        },
+        {
+          "section": "Pricing",
+          "density": "tight"
+        },
+        {
+          "section": "CTA",
+          "density": "airy"
+        },
+        {
+          "section": "Contact",
+          "density": "normal"
+        }
+      ],
+      "imagePlacement": [
+        {
+          "description": "the inside of a small Manila server room at night, two racks, cabling visible, lit only by equipment LEDs and one overhead fluorescent",
+          "section": "Hero",
+          "placement": "full-bleed"
+        },
+        {
+          "description": "a quiet law office at dusk after everyone has left, desks with closed laptops, warm lamp light through a window",
+          "section": "Proof",
+          "placement": "figure"
+        }
+      ]
+    },
+    "imagery": {
+      "treatment": "available light only, no strobe: the server room lit by equipment LEDs and a single overhead fluorescent, shot on a fast 35mm-equivalent prime with a cool blue-green cast and visible grain in the shadows; the office lit by one warm desk lamp and window light at dusk, same lens, warm cast, both frames still and unstaged, digital sensor noise, no HDR glow"
+    },
+    "sections": [
+      {
+        "name": "Hero",
+        "container": "full-bleed band",
+        "width": "full-bleed",
+        "align": "split",
+        "artDirection": "Server-room photograph fills the frame, headline and CTA set in cream reversed-out type anchored bottom-left, rust accent only on the CTA."
+      },
+      {
+        "name": "Problem",
+        "container": "running paragraph at reading measure",
+        "width": "measure",
+        "align": "centred",
+        "artDirection": "Three short dry sentences on what a USB drive in a drawer actually is as a recovery plan — no doom, just the fact of it."
+      },
+      {
+        "name": "How it works",
+        "container": "definition list of term and detail",
+        "width": "wide",
+        "align": "left",
+        "artDirection": "Nightly encrypted backup / Makati and Clark / quarterly drill / 4-hour RTO, each term set in Oswald caps, detail in Overpass, ruled with a single rust hairline between rows."
+      },
+      {
+        "name": "Numbers",
+        "container": "horizontal row of figures",
+        "width": "wide",
+        "align": "centred",
+        "artDirection": "214 machines, 19 offices, 41 minutes, 100 percent — set as a plain horizontal row, no cards, no icons, cream figures on navy."
+      },
+      {
+        "name": "Proof",
+        "container": "image with caption",
+        "width": "wide",
+        "align": "split",
+        "artDirection": "The law-office-at-dusk photograph runs edge to edge under the fold, breaking the two-column grid; caption below in small Overpass carries the restore-drill fact."
+      },
+      {
+        "name": "Pricing",
+        "container": "bordered data block",
+        "width": "measure",
+        "align": "centred",
+        "artDirection": "A single bordered block: PHP 18,500/month, up to 15 machines, no setup fee, 30 days notice to cancel — hairline border in warm bone, no table, no tiers."
+      },
+      {
+        "name": "CTA",
+        "container": "single oversized line of type",
+        "width": "full-bleed",
+        "align": "centred",
+        "artDirection": "One oversized line — 'Tell us what you're backing up to a drawer' — on flat navy ground, rust underline, nothing else."
+      },
+      {
+        "name": "Contact",
+        "container": "plain list",
+        "width": "measure",
+        "align": "centred",
+        "artDirection": "Email and phone set as a plain list in Overpass, no icons, no social row, footer-quiet."
+      }
+    ]
+  },
+  "directionRetried": 0,
+  "fonts": [
+    {
+      "family": "Oswald",
+      "weights": [
+        500,
+        700
+      ],
+      "faces": 2,
+      "kb": 56
+    },
+    {
+      "family": "Overpass",
+      "weights": [
+        400,
+        600
+      ],
+      "faces": 2,
+      "kb": 103
+    }
+  ],
+  "directionUsage": {
+    "input_tokens": 6808,
+    "output_tokens": 7150
+  },
+  "directionCostUsd": 0.085116,
+  "attempts": [],
   "draftUsage": {
-    "input_tokens": 2469,
+    "input_tokens": 10741,
     "cache_creation_input_tokens": 0,
     "cache_read_input_tokens": 0,
     "cache_creation": {
       "ephemeral_5m_input_tokens": 0,
       "ephemeral_1h_input_tokens": 0
     },
-    "output_tokens": 13634,
+    "output_tokens": 12100,
     "service_tier": "standard",
     "inference_geo": "global"
   },
-  "draftCostUsd": 0.141278
+  "draftCostUsd": 0.142482,
+  "images": [
+    {
+      "description": "the inside of a small Manila server room at night, two racks, cabling visible, lit only by equipment LEDs and one overhead fluorescent",
+      "rawKb": 2402,
+      "kb": 101,
+      "ms": 10033
+    },
+    {
+      "description": "a quiet law office at dusk after everyone has left, desks with closed laptops, warm lamp light through a window",
+      "rawKb": 2280,
+      "kb": 50,
+      "ms": 8503
+    }
+  ]
 }
