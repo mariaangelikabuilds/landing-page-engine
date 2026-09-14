@@ -73,6 +73,7 @@ export async function runBrief(briefBody, { outRoot = "out/runs", say = () => {}
   let repairKind = null;
   let detRepairs = 0;
   let compRepairs = 0;
+  let lastFailed = null;
   let qaReport;
 
   for (;;) {
@@ -87,6 +88,11 @@ export async function runBrief(briefBody, { outRoot = "out/runs", say = () => {}
     say(`  verdict: ${qaReport.verdict}`);
 
     if (qaReport.verdict !== "pass") {
+      // A repair that fails the same rules as the attempt it repaired has not understood
+      // the note; a third try at $0.15 is money, not signal.
+      const failedNow = qaReport.deterministicChecks.filter((c) => !c.pass).map((c) => c.rule).sort().join(",");
+      if (failedNow === lastFailed) { say(`  the repair failed the same rule(s) again (${failedNow}); stopping`); break; }
+      lastFailed = failedNow;
       if (detRepairs >= MAX_DETERMINISTIC_REPAIRS) break;
       detRepairs += 1;
       repairKind = "deterministic";

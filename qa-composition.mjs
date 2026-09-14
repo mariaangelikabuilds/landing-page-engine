@@ -275,7 +275,7 @@ function typeMetrics(textElements, headings) {
   const sizes = [...new Set(textElements.map((t) => Math.round(t.fontSize * 2) / 2))].sort((a, b) => a - b);
   const measured = textElements
     .filter((t) => MEASURE_TAGS.has(t.tag) && t.ownLength >= MEASURE_MIN_CHARS && t.avgCharWidth > 0)
-    .map((t) => ({ tag: t.tag, text: t.ownText, charsPerLine: round(t.contentWidth / t.avgCharWidth, 1) }))
+    .map((t) => ({ tag: t.tag, text: t.ownText, charsPerLine: round(t.contentWidth / t.avgCharWidth, 1), width: Math.round(t.contentWidth), fontSize: t.fontSize }))
     .sort((a, b) => b.charsPerLine - a.charsPerLine);
   const decorative = [
     ...textElements
@@ -299,7 +299,11 @@ function typeMetrics(textElements, headings) {
     typeScaleCount: sizes.length,
     typeScaleRatio: sizes.length ? round(sizes.at(-1) / sizes[0], 2) : null,
     measureMax: measured[0]?.charsPerLine ?? null,
-    measureWorst: measured[0] ? `${measured[0].tag.toLowerCase()} "${measured[0].text}"` : null,
+    // Four repairs in a row failed on a paragraph named only by its text; the width is what
+    // the drafter can act on.
+    measureWorst: measured[0]
+      ? `${measured[0].tag.toLowerCase()} "${measured[0].text}" is ${measured[0].width}px wide at ${measured[0].fontSize}px (${measured[0].charsPerLine} characters a line); cap that element at max-width: 60ch, about ${Math.round(measured[0].width * 70 / measured[0].charsPerLine)}px`
+      : null,
     decorativeLabels: decorative.length,
     decorativeExamples: decorative.slice(0, 3),
   };
