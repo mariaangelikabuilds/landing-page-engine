@@ -165,7 +165,7 @@ function contactIntegrityCheck(pageHtml, briefBody) {
           ? `tel: href has digits ${href}, its own label reads ${digitsOf(label)}`
           : null,
         contact.phone && href !== digitsOf(contact.phone)
-          ? `tel: href has digits ${href}, the brief says ${digitsOf(contact.phone)}`
+          ? `tel: href has digits ${href}, the brief says ${digitsOf(contact.phone)}; write the href exactly as tel:+${digitsOf(contact.phone)} and keep the label as the brief spells it`
           : null,
         // Once the digits had to match, the drafter started pasting the display string
         // into the href, spaces and all. RFC 3966 allows "-", ".", "(" and ")" as visual

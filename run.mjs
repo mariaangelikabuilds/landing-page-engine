@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { draftPage } from "./draft.mjs";
 import { qaRun } from "./qa.mjs";
@@ -66,6 +66,37 @@ async function judgeIfPassing(runDir, qaReport, say) {
   return report;
 }
 
+// A composition repair can break a mechanical check the page it replaced had passed. A
+// run never ends on a worse page than one it already had: when the last attempt fails
+// the gate and an earlier attempt passed, the earlier page comes back as the result and
+// the failed attempt is shelved with the rest. The judge findings that prompted the repair
+// stay on the record as advisory.
+const ATTEMPT_FILES = ["page.html", "qa-report.json", "judge.json", "page-1440.png", "page-375.png"];
+
+export function restoreBestAttempt(runDir) {
+  const record = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
+  const current = JSON.parse(readFileSync(join(runDir, "qa-report.json"), "utf8"));
+  if (current.verdict === "pass") return null;
+  const passing = [...(record.attempts ?? [])].reverse().find((a) => a.verdict === "pass");
+  if (!passing) return null;
+  const shelf = join(runDir, "attempts", `${passing.n}-${passing.kind}`);
+  const failedShelf = join(runDir, "attempts", `${(record.attempts?.length ?? 0) + 1}-abandoned`);
+  mkdirSync(failedShelf, { recursive: true });
+  for (const name of ATTEMPT_FILES) {
+    if (existsSync(join(runDir, name))) renameSync(join(runDir, name), join(failedShelf, name));
+    if (existsSync(join(shelf, name))) copyFileSync(join(shelf, name), join(runDir, name));
+  }
+  const restored = {
+    ...record,
+    draftUsage: passing.draftUsage,
+    draftCostUsd: passing.draftCostUsd,
+    attempts: [...record.attempts, { n: record.attempts.length + 1, kind: "abandoned", verdict: current.verdict, judgeSerious: null, draftUsage: record.draftUsage, draftCostUsd: record.draftCostUsd, reviewCostUsd: current.claudeReview?.costUsd ?? null, judgeCostUsd: current.judge?.costUsd ?? null, images: record.images }],
+    restoredFromAttempt: passing.n,
+  };
+  writeFileSync(join(runDir, "run.json"), JSON.stringify(restored, null, 2));
+  return passing.n;
+}
+
 export async function runBrief(briefBody, { outRoot = "out/runs", say = () => {}, judge = true } = {}) {
   let prepared = null;
   let runDir = null;
@@ -107,12 +138,18 @@ export async function runBrief(briefBody, { outRoot = "out/runs", say = () => {}
     if (!serious.length || compRepairs >= MAX_COMPOSITION_REPAIRS) break;
     compRepairs += 1;
     repairKind = "composition";
+    lastFailed = null; // a new layout gets its own chance at the mechanical checks
     notes = compositionNotes(qaReport.judge);
     say(`  composition repair: ${serious.map((f) => f.rule).join(", ")}`);
   }
 
   if (detRepairs || compRepairs) {
     say(`  ${qaReport.verdict} after ${detRepairs} deterministic and ${compRepairs} composition repair(s)`);
+  }
+  const restored = restoreBestAttempt(runDir);
+  if (restored) {
+    qaReport = JSON.parse(readFileSync(join(runDir, "qa-report.json"), "utf8"));
+    say(`  restored attempt ${restored}, which passed the gate; the later repair is shelved as abandoned`);
   }
   const ledgerLine = bundleRun(runDir);
   say(`bundled ${runDir}`);
