@@ -2,6 +2,57 @@
 
 Every score this suite has produced, and what changed between them. Newest first.
 
+## 2026-09-14, 22/22, the gate can see composition
+
+Detection 22/22, 0 collateral, 0 false fails. Eight new mutations across five new checks,
+and a new golden fixture: `2026-09-14T02-41-18-salcedo-systems`, the first run under
+rules 2.0.0 to pass the full gate first time, at $0.39.
+
+The July fixture had to go. Under the 2.0.0 gate it fails `hero-cta` (two calls to
+action above the fold), `type-scale` (ratio 2.67) and `type-measure` (112 characters a
+line), and it carries no direction, so `theme-mode` could not run. A fixture that fails
+its own gate measures nothing.
+
+What the round was for: on 2026-09-13 the owner looked at the 13/13 page from 2026-08-17
+and called it the generic AI landing page. It was. The direction stage had converged on a
+laminated log in Courier Prime four runs out of four; the review's one useful finding
+(`canvas-use`, a stranded column) had been written to disk and read by nothing; and ten of
+thirteen checks were mechanical, so a page scored full marks for being harmless.
+
+Calibration before promotion. Every candidate composition metric was measured on the
+nineteen runs on record before any entered the gate (`evals/calibrate.mjs`, table in
+`evals/calibration.md`). Measured on text ink, not element boxes, which is what sank the
+1.3.0 canvas-use attempt. `hero-cta`, `no-decorative-labels`, `type-measure`, `type-scale`
+and `theme-mode` separated the labelled bad pages from the rest; `stranded-column`,
+`uniform-inset`, `density-variation` and `grid-break` did not on two labels, so they ship
+advisory with their numbers in every report.
+
+Four things the first three 2.0.0 runs taught, each now in code:
+
+1. A check that reports a count teaches the repair nothing. Contrast failed twice in a
+   row as "5 node(s)" and overflow three times as "393px too wide". The checks now name
+   the node, the colours and the ratio, and the outermost element that overflows.
+2. The hero lives in `<header>` as often as in `<main>`. The hero-CTA metric excluded
+   header and reported zero calls to action on two pages with a visible button at 459px.
+   Now only nav and footer are chrome.
+3. Labels are labels at any size. The 15px threshold missed 28px condensed capitals that
+   read as 16px, and `text-transform` missed capitals typed in. Uppercase on any
+   non-heading, non-control text under 32px counts, and so does literal caps.
+4. Two mutations were wrong before the gate was: shrinking only headings left a page
+   whose oversized figures were not headings still on scale, and the theme flip appended a
+   comment after `</html>` and tripped `valid-document`. Both fixed; both would have read
+   as gate misses.
+
+Effort A/B on the draft, same brief, same rules: high spent 31k output tokens ($0.34 a
+draft); medium spent 13k ($0.15) and the judge preferred the medium page. Medium is the
+default.
+
+The judge is the new advisory half. It reads the page as screenshot tiles at 1440 and 375
+and its serious findings buy up to two layout repairs. On the page the owner called bad
+it now reports the missing hero CTA and the small-caps labels as serious, for $0.05. It
+does not decide the verdict and never will: a judgement is not reproducible enough to
+fail a build, and the measurable set keeps growing out of what it finds.
+
 ## 2026-08-17, 14/14, and the yield problem the gate created
 
 Detection 14/14, 0 collateral, 0 false fails. `no-side-stripe` added: a `border-left`

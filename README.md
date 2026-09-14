@@ -1,134 +1,155 @@
 # landing-page-engine
 
-Brief in, QA'd landing page out. Claude drafts one self-contained HTML file against a
-versioned rules file; a deterministic gate decides whether it ships. The model reviews,
-the checks decide.
+Brief in, QA'd landing page out. An art direction stage commits to the look, Claude drafts
+one self-contained HTML file against a versioned rules file, a deterministic gate decides
+whether it ships, and a composition judge looks at the rendered page and sends it back if
+the layout is wrong. The model reviews, the checks decide.
 
 ## Run it
 
 ```
 npm install
-npx playwright install chromium
+npx playwright install chromium        # playwright 1.61 wants chromium build 1228
 echo ANTHROPIC_API_KEY=sk-ant-... > .env
-node engine.mjs run briefs/demo-brief.json
+node engine.mjs run briefs/salcedo-systems.json
 ```
 
-Each run lands in `out/runs/<timestamp-brand>/` with `page.html`, screenshots at 1440
-and 375, `qa-report.json`, a readable `qa-report.md`, and one ledger line appended to
-`out/runs.jsonl` (verdict, check counts, token cost). Stages also run individually:
-`draft <brief>`, `qa <run-dir>`, `bundle <run-dir>`. Exit code follows the verdict, so
-`run` and `qa` drop straight into CI.
+Each run lands in `out/runs/<timestamp-brand>/` with `page.html`, screenshots at 1440 and
+375, `qa-report.json`, a readable `qa-report.md`, `judge.json`, `run.log` (the terminal
+transcript) and one ledger line appended to `out/runs.jsonl` (verdict, check counts,
+attempts, judge findings, every model call costed). A repaired run keeps its earlier
+attempts under `attempts/`. Stages also run individually: `draft <brief>`, `qa <run-dir>`,
+`judge <run-dir>`, `bundle <run-dir>`. Exit code follows the verdict.
 
-## What the first real run taught me
+Three briefs ship in `briefs/`: a managed-backup provider (B2B services), a coffee
+subscription (warm consumer) and clinic scheduling software (the category where the
+default look is strongest). Same fields, three different pages.
 
-The demo brief (a fictional Manila managed-backup provider) passed all five
-deterministic checks first try, and the review pass still earned its keep: it flagged
-two copy claims the draft invented ("the keys stay with you", "no term, no penalty")
-that appear nowhere in the brief. That is the split working as designed. Mechanical
-properties (parseability, self-containment, broken links, overflow, contrast) are
-cheap to check exactly, so a model should never vote on them. Judgment calls
-(is this claim actually in the brief?) are where review tokens are worth spending,
-and where a violations list with rule IDs beats a vibes paragraph.
+## What a run does
 
-The second lesson came from the same run: the passing draft had em dashes in its
-copy, the model emitting the industry's tells even with a rules file in its prompt.
-So rules 1.1.0 promoted copy tells to a gate check: an exact scan of the rendered
-text for dashes and banned vocabulary. Re-checked under the new gate, the first
-draft correctly fails (the ledger keeps both verdicts); the next draft came back
-clean and passed 6/6.
+1. **Direction.** Before any markup, the model commits to three voice words, a physical
+   object and its material, a lane from a fixed list, a palette strategy against a named
+   reference, both typefaces, the hero (an outcome headline, one call to action, one proof
+   fact), the grid, the one section that breaks it, a density map, where each photograph
+   sits, and a photographic treatment. It names its own first reflexes and refuses them.
+   The code refuses what the prompt cannot enforce: 40 training-data fonts, the "document"
+   lane and any typewritten-paper object (the second-order reflex every IT brief lands on),
+   a lane already rejected, and any font, voice word or lane already carrying this brand's
+   last four runs or any other brand's latest. A refused direction is retried once with the
+   refusal quoted.
+2. **Draft.** Claude writes the page to that direction and to `rules/page-rules.md`. The two
+   families are fetched from Google Fonts once and embedded as woff2 data URIs; the
+   photographs are generated (gpt-image-1, then gemini-2.5-flash-image if it is out) and
+   embedded as webp. The page makes zero external requests.
+3. **Gate.** Eighteen deterministic checks decide the verdict: document structure,
+   single file, contact integrity, palette fidelity, directed type, resolved imagery, no
+   side stripes, page weight, link audit, 375px overflow, axe-core, copy tells, motion
+   visibility, and five composition checks measured on the rendered text ink: one call to
+   action above the fold, no decorative labels, type measure, type scale, theme mode.
+   Four more composition metrics are reported as advisory with their numbers.
+4. **Review and judge.** An advisory review reads the markup against the rules file. A
+   composition judge reads the page as screenshot tiles at 1440 and 375 and returns
+   findings with a severity; "serious" is defined narrowly (a stranded column, a hero that
+   fails the one-CTA rule, the stock skeleton, a repeated formula, a stat row, a duplicated
+   photograph). Neither can change the verdict.
+5. **Repair.** A failing check is read back to the drafter with the exact node, colour
+   and ratio, or the exact element that overflowed, and the page is redrafted up to three
+   times. A page that passes but draws serious judge findings is redrafted up to twice
+   with a prompt that may move the grid but not the palette, the type or a sentence of
+   copy. Direction, fonts and photographs are prepared once and reused, so a repair pays
+   for markup only.
 
-## When the gate says no
+## Why the 2.0.0 rules exist
 
-`run` does not hand a rejected page back to a person. It reads the failing checks, tells
-the drafter exactly what they said, and re-drafts, up to two repairs. The art direction,
-the embedded typefaces and the generated photographs are prepared once and reused, so a
-repair pays for markup and nothing else.
+On 2026-08-17 the engine passed 13 of 13 checks on a page that was, to its owner, the
+generic AI landing page: a dark stock server room with a mono headline over it, twelve
+small-caps labels, a 60ch measure set on the wrapper so everything stranded left with a
+dead band beside it. Four directed runs had converged on the same laminated maintenance
+log in Courier Prime, "unhurried" four times out of four. Three things were wrong, and
+`rules/page-rules.md` records each.
 
-This exists because the yield fell as the gate grew. Across twelve runs on 2026-08-17 the
-first-pass verdict was 8 pass and 4 fail, and every one of the failures came from the last
-four runs, where the gate had grown from six checks to thirteen. A stricter gate rejects
-more good-enough pages, which is correct behaviour and useless on its own. Reading the
-rejection back is what turns it into something that ships.
+The direction prompt's example objects were all typewritten paper and its anchors were
+all text-forward restraint, so the model went where it was pointed. Nothing in the
+pipeline ever looked at the render: the screenshots were written and read by no code, the
+review read markup with the images elided (and 150 KB of embedded fonts not elided, which
+is where its $0.44 cost and its dropped streams came from), and its findings fed nothing.
+And the gate could not tell a good page from a harmless one: every composition rule was
+advisory, and the one attempt to measure canvas use had measured element boxes, so a
+block heading in a wide wrapper reported a right edge it never inked.
+
+The 2.0.0 gates were calibrated on the nineteen runs on record before they went in, and
+`evals/calibrate.mjs` reprints that table from `out/runs` against `evals/labels.json`.
+`stranded-column` is the ink-based successor to the cut metric; it ships advisory until
+the labels say it discriminates, and the judge covers the same defect meanwhile.
 
 ## Measuring the gate
 
-The gate decides whether a page ships, and for a while that claim rested on one piece of
-evidence: a good page passed. `evals/` tests the other direction. It takes a page that
-already passed 6/6, injects exactly one known defect at a time, and asks whether the right
-check fires, and only the right check.
+`evals/` tests the gate from the other direction: it takes a page that already passed,
+injects exactly one known defect at a time, and asks whether the right check fires, and
+only the right check.
 
 ```
 npm run evals
 ```
 
-Labels are correct by construction, since the harness knows what it broke. Every mutation
-is local (the unreachable host uses the reserved `.invalid` TLD), so the suite runs with no
-API key, no network, and no cost. That is why CI can run it on fork pull requests, where
-secrets are unavailable. `evals/SCORECARD.md` and `evals/results.json` are rewritten on
-every run and CI fails on a diff, so the numbers below cannot drift from the code.
+Labels are correct by construction. Every mutation is local, so the suite runs with no
+API key and no network, which is why CI runs it on fork pull requests.
+`evals/SCORECARD.md` and `evals/results.json` are rewritten on every run and CI fails on
+a diff. The golden fixture is always a real passing run; replacing it is recorded in
+`evals/history.md`, never hand-edited.
 
-**14/14 caught, 0 collateral failures, 0 false fails on the clean page.**
+The suite carries twenty-two mutations: fourteen for the original checks and eight for
+the composition gates (a long measure, a flat scale, a tracked-caps label, a small-caps
+label, a numbered heading, a missing hero CTA, two hero CTAs, a theme flip). Two blind
+spots are named rather than implied: a copy claim the brief does not support, and
+composition beyond the measurable set, which is the judge's job.
 
-The first run scored 5/6, and the miss was the point. A 2000px element on a 375px viewport
-did not fail the `responsive` check, because the golden page sets `overflow-x: hidden` on
-`html, body`, which clamps `scrollWidth` to the viewport. The check read 0px of overflow on
-a page overflowing by more than 1600.
+The lesson that repeats through `evals/history.md`: a check that reports a count teaches
+the repair nothing. Contrast failed twice in a row as "5 node(s)" and overflow three times
+as "393px too wide" before the checks named the nodes and the elements.
 
-That check was not weak, it was suppressible, and what suppressed it was the page under
-test. The drafting model had written one line of CSS that switched off the check meant to
-catch its own layout, and nothing downstream could notice: the gate reported a pass, the
-screenshot looked correct, and the ledger recorded a clean run. `responsive` now neutralises
-`overflow-x` before measuring and takes the furthest element edge as well as `scrollWidth`.
-The golden page still passes all six afterwards, so the fix caught a real defeat without
-over-firing. Full record in `evals/history.md`.
+## Cost
 
-The second finding came from running the engine again on 2026-08-17. The brief's phone number
-is +63 2 8845 2210, and the draft wrote `tel:` hrefs missing one digit on two separate runs, in
-different positions, while the visible label read correctly both times. The advisory review
-caught the first and missed the second, so the model layer was not dependable for it. Comparing
-digits is exact, so it became the `contact-integrity` gate check.
-
-Then the next run satisfied the digit comparison by pasting the display string into the href,
-spaces and all, which is not a valid tel URI. The fix had changed the failure mode rather than
-removing it. The check now rejects whitespace too, both cases are mutations in the suite, and
-the run after that came back clean at 7/7.
-
-The suite still names what it does not catch. Nothing deterministic can decide whether a
-sentence is supported by the brief: an earlier draft invented "the keys stay with you" and
-"no term, no penalty", and that is the advisory pass's job. The gate also has no opinion about
-whether a page uses its canvas, since it measures overflow, not composition.
+Measured 2026-09-14 at Sonnet 5's $2/$10 per million tokens. Direction about $0.09,
+a draft about $0.15 at medium effort (31k output tokens at high against 13k at medium,
+and the judge preferred the medium page), review about $0.08, judge about $0.06, two
+photographs about $0.13 outside the ledger. A run that passes first time costs about
+$0.40; one that needs a repair of each kind about $0.75. Effort per stage is overridable
+with `PAGE_ENGINE_EFFORT_<STAGE>`.
 
 ## Architecture
 
 ```
-brief (json or md)
-      |
-      v
- draft.mjs ── claude-sonnet-5, plain text ──> page.html  (one file, inline CSS, no JS)
-      |
-      v
- qa.mjs
-      |── deterministic gate ── decides pass/fail
-      |     1. document structure + single-file scan   (regex + URL parse, no DOM dep)
-      |     2. contact integrity on tel: and mailto:   (digits vs label vs brief)
-      |     3. link audit on external hrefs            (native fetch, HEAD then GET)
-      |     4. Playwright render at 1440 and 375       (fails on horizontal overflow)
-      |     5. axe-core injected into the same page    (fails on serious/critical)
-      |     6. copy tells on the rendered text         (dashes, banned vocabulary)
-      |
-      |── Claude review ── advisory ──> violations[] citing rules/page-rules.md IDs
-      v
- bundle.mjs ──> qa-report.md + screenshots + out/runs.jsonl ledger line
+brief (json)
+   |
+   v
+direction.mjs ── refuses reflex fonts, the document lane, repeats ──> direction (JSON)
+   |
+   v
+draft.mjs ── claude-sonnet-5 ──> page.html   font.mjs embeds woff2, image.mjs embeds webp
+   |
+   v
+qa.mjs ── 18 deterministic checks decide ── qa-composition.mjs measures the rendered ink
+   |── rulesReview ── advisory, markup with data URIs elided
+   v
+judge.mjs ── advisory, screenshot tiles at 1440 and 375 (tiles.mjs)
+   |
+   v
+run.mjs ── up to 3 deterministic and 2 composition repairs into one run dir
+   |
+   v
+bundle.mjs ──> qa-report.md + out/runs.jsonl ledger line
 ```
 
-`rules/page-rules.md` is the contract both model passes read: the drafter obeys it,
-the reviewer cites it. It is versioned and has a change log because it is a product
-artifact, not a prompt fragment.
+`rules/page-rules.md` is the contract every model pass reads: the drafter obeys it, the
+reviewer cites it, the judge reads its Structure and Composition sections. It is versioned
+and has a change log because it is a product artifact, not a prompt fragment.
+`evals/convergence.mjs` prints what each brand was given and exits non-zero when brands
+share a lane, a font or a voice word.
 
 ## MCP server
 
-The same three stages are exposed as MCP tools (`draft_page`, `qa_page`,
-`bundle_run`) over stdio:
+Four tools over stdio: `run_page` (the whole loop), `draft_page`, `qa_page`, `bundle_run`.
 
 ```
 claude mcp add --transport stdio page-engine -- node mcp-server.mjs
@@ -136,52 +157,32 @@ claude mcp add --transport stdio page-engine -- node mcp-server.mjs
 
 ## Technical decisions
 
-**Why vanilla single-file output.** The May 2026 comparisons of Lovable, Bolt, and v0
-(wz-it.com, May 22, 2026) describe framework-locked output on all three: React,
-Tailwind, shadcn/ui, Supabase or Vercel coupling, with "production hardening still
-required" left to the user. Coverage of the same trio (uibakery.io, 2026) notes they
-converge on one landing page skeleton, differing mainly in backgrounds and button
-sizes. A dependency-free single HTML file is the counter-position: it deploys anywhere,
-diffs cleanly, and the rules file can ban the shared skeleton outright
-(`no-template-skeleton`).
+**Why vanilla single-file output.** Framework-locked generators converge on one landing
+page skeleton and leave production hardening to the user. A dependency-free single HTML
+file deploys anywhere, diffs cleanly, and the rules file can ban the shared skeleton
+outright.
 
-**Why deterministic checks decide and the model only advises.** This is the eval
-pyramid pattern as documented in 2026 (futureagi.com, Feb 15, 2026, updated May 20):
-a deterministic floor of schema, regex, and exact-match checks runs on everything at
-near-zero cost and reportedly catches 30 to 60 percent of production failures before
-any judge token is spent, with model judgment reserved for what cheaper layers cannot
-decide. Here the floor is the five gate checks; the judge is one structured review
-call. Framer's June 16, 2026 launch of Agents, which audit pages for broken links,
-contrast, and accessibility inside their canvas, validates the QA direction, but it
-lives in a closed SaaS. This is the terminal-demoable, log-everything version.
+**Why deterministic checks decide and the models only advise.** Mechanical properties
+are cheap to check exactly, so a model never votes on them. Judgement (is this claim in
+the brief, is this page well composed) is where model tokens are spent, and the output of
+that judgement is a repair prompt, never a verdict. An LLM judge is not reproducible
+enough to fail a build; a measured check is.
 
-**Why claude-sonnet-5 for both passes.** Drafting wants speed and a 128k output
-ceiling more than maximum depth, and Sonnet 5 is intro-priced at $2/$10 per MTok
-through Aug 31, 2026. The demo run cost $0.13 end to end. The review pass is a
-constrained judgment task, so the same model does both; swapping the review to
-`claude-haiku-4-5` is a one-line change in `claude.mjs`.
+**Why the judge sees tiles, not the full page.** The API downsizes anything over about
+1568px on its long edge, so a 1440 by 4000 capture is unreadable. Eight 1440x900 tiles
+and ten 375x812 tiles cost about 19k input tokens and the judge can read the type.
 
-**Why structured outputs for the review only.** JSON outputs via `output_config.format`
-went GA (no beta header), compiling the schema into a grammar that constrains decoding,
-so the gate never parses free text. The draft stays plain text on purpose: escaping a
-full HTML page inside a JSON string wastes tokens and the schema adds nothing to
-markup quality.
+**Why claude-sonnet-5 for every pass.** Drafting wants speed and a large output ceiling;
+the review and the judge are constrained judgement tasks. Sonnet 5 is $2/$10 per million
+tokens (the scheduled September increase did not happen).
 
-**Why MCP SDK v1.** `@modelcontextprotocol/sdk` 1.29 is the supported production line;
-v2 (renamed to `@modelcontextprotocol/server`) targets the 2026-07-28 spec and its
-docs say the API can still change. The v1-to-v2 move is a small documented migration
-to do after it stabilizes. One consequence: v1's `registerTool` takes zod shapes for
-input schemas, so zod is in the dependency list for `mcp-server.mjs` alone; the
-pipeline validates the review JSON by hand.
+**Why structured outputs for direction, review and judge only.** JSON schema output
+constrains decoding, so nothing parses free text. The draft stays plain text on purpose:
+escaping a page inside a JSON string wastes tokens and adds nothing to markup quality.
 
-Revisit note, 2026-08-17: the spec did ship on 2026-07-28, moving MCP to a stateless
-request/response core with multi-round-trip requests replacing server-initiated calls,
-and deprecating Roots, Sampling, Logging, and the HTTP+SSE transport on a twelve-month
-clock. None of that is load-bearing for three local stdio tools, so v1 stays here for
-now. The migration is tracked, not forgotten.
+**Why MCP SDK v1.** `@modelcontextprotocol/sdk` 1.29 is the supported production line; the
+v2 migration is small and documented and can wait until it stabilises. zod is in the
+dependency list for `mcp-server.mjs` alone.
 
-**What was deliberately not added.** No linkinator (the audit is a fetch loop), no
-pa11y or second browser (axe-core injects into the Playwright page already open), no
-dotenv (reading one line of `.env` is five lines of fs), no framework, no scaffold.
-Dependencies: `@anthropic-ai/sdk`, `playwright`, `axe-core`, plus `zod` for the MCP
-file as noted.
+**What was deliberately not added.** No linkinator, no pa11y, no dotenv, no framework,
+no scaffold. Dependencies: `@anthropic-ai/sdk`, `playwright`, `axe-core`, plus `zod`.

@@ -54,6 +54,8 @@ Severity is not a mood. Mark a finding "serious" when any of these is true, and 
 - hero-cro: the first 1440 tile shows no call to action, or more than one, or a subtext paragraph plus buttons plus cards.
 - no-template-skeleton or no-section-rhythm: the page as a whole is the stock skeleton or one formula repeated three or more times.
 - no-decorative-labels: tracked caps or small caps used as labels anywhere in the page (one finding for the page, not one per section).
+- no-section-rhythm: a row of three or more oversized numerals with small labels under them, the hero-metric template, wherever it sits on the page.
+- imagery-placement: the same photograph appears twice, or a photograph sits where the direction did not place it.
 Everything else is "minor". An empty list is a valid answer.
 
 Then write one paragraph of overall judgement: what the page looks like it is, whether the art direction it was given actually landed, and, if the direction said light and the render is mostly dark or the reverse, say so.`;

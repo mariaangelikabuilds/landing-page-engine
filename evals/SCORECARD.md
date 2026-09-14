@@ -6,9 +6,9 @@ so this file and the code cannot drift apart.
 The golden page is a real run that passed the full gate (`2026-09-14T02-41-18-salcedo-systems`).
 Each mutation injects exactly one defect into it and names the check that should fire.
 
-**Detection: 21/22 (95%).
+**Detection: 22/22 (100%).
 False fails on the clean page: 0.
-Collateral failures across all mutants: 1.**
+Collateral failures across all mutants: 0.**
 
 | mutation | target check | result | also failed |
 |----------|--------------|--------|-------------|
@@ -27,13 +27,13 @@ Collateral failures across all mutants: 1.**
 | `entrance-never-resolves` | motion-visible | caught | none |
 | `reduced-motion-hides-content` | motion-visible | caught | none |
 | `long-measure` | type-measure | caught | none |
-| `flat-type-scale` | type-scale | MISSED | none |
+| `flat-type-scale` | type-scale | caught | none |
 | `tracked-caps-label` | no-decorative-labels | caught | none |
 | `small-caps-label` | no-decorative-labels | caught | none |
 | `numbered-heading` | no-decorative-labels | caught | none |
 | `no-hero-cta` | hero-cta | caught | none |
 | `two-hero-ctas` | hero-cta | caught | none |
-| `theme-mode-flip` | theme-mode | caught | valid-document |
+| `theme-mode-flip` | theme-mode | caught | none |
 
 "Also failed" measures whether a defect trips checks it has no business tripping.
 Zero means each check is independent, so a failure names its own cause.

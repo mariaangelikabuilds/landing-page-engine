@@ -65,6 +65,10 @@ fails. Never text-transform: uppercase with letter-spacing on small text, never
 font-variant: small-caps, never a numbered prefix on a heading, and never
 uppercase on any text under 20px except inside a button or a link. The theme the
 direction names is checked on the render: a light page is mostly light bands.
+Each photograph appears exactly once, where the direction placed it. Figures
+from the brief live in running copy, a definition list, a table or a bordered
+data block; never as a row of oversized numerals with small labels under them,
+which is the most cloned block in the category and fails the judge.
 A horizontal row of figures, columns or split content wraps or stacks below
 700px (grid with auto-fit and a minmax floor, or flex-wrap); never a fixed
 column count or a fixed pixel width that outruns a 375px viewport.

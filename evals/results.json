@@ -113,8 +113,8 @@
     {
       "id": "flat-type-scale",
       "rule": "type-scale",
-      "defect": "every heading forced to body size, so the page has no scale",
-      "detected": false,
+      "defect": "every element forced to one size, so the page has no scale",
+      "detected": true,
       "collateral": []
     },
     {
@@ -157,13 +157,11 @@
       "rule": "theme-mode",
       "defect": "the direction on record says the opposite theme from the one the page renders",
       "detected": true,
-      "collateral": [
-        "valid-document"
-      ]
+      "collateral": []
     }
   ],
-  "detectionRate": 95,
-  "collateralCount": 1,
+  "detectionRate": 100,
+  "collateralCount": 0,
   "knownBlindSpots": [
     {
       "id": "unsourced-copy-claims",
