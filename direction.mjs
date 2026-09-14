@@ -194,7 +194,11 @@ Work the procedure in order and do not skip a step.
    Do not plan a row of big statistics with small labels under them. That is the
    hero-metric template and it is the most cloned block in the category. Do not plan a
    grid of cards. A page whose sections are all "measure" and "left" is one stranded
-   column with a dead band beside it; at most half the sections may be measure-width.
+   column with a dead band beside it; at most half the sections may be measure-width,
+   and a measure-width section is centred or split, never left. A split section names
+   what fills its other half: a photograph from the brief, a figure built from the
+   brief's numbers, or a block of type. Never a decorative pattern, texture or empty
+   tinted box.
 
 9. HERO. For a client-services or product page the hero is a conversion surface.
    Headline: the outcome for the buyer, one sentence, taken from the brief. Exactly one
@@ -262,6 +266,11 @@ export function refusals(direction, used) {
   if (direction.lane === direction.reflexRejected.lane) reasons.push(`lane "${direction.lane}" is the lane you rejected as reflex`);
   const measureOnly = direction.sections.filter((s) => s.width === "measure").length;
   if (measureOnly > direction.sections.length / 2) reasons.push(`${measureOnly} of ${direction.sections.length} sections are measure-width: that is one stranded column`);
+  // A reading measure pinned left with nothing beside it is the stranded column itself; the
+  // first 2.0.0 run planned three of them and the judge flagged two. Measure means centred
+  // or split, never left.
+  const strandedPlan = direction.sections.filter((s) => s.width === "measure" && s.align === "left").map((s) => s.name);
+  if (strandedPlan.length) reasons.push(`measure-width sections aligned left (${strandedPlan.join(", ")}): a lone measure is centred or split, never left`);
   return reasons;
 }
 

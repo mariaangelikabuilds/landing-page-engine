@@ -280,7 +280,14 @@ function typeMetrics(textElements, headings) {
     ...textElements
       .filter(
         (t) =>
-          (t.textTransform === "uppercase" && t.letterSpacing / t.fontSize > 0.05 && t.fontSize < 15) ||
+          // Uppercase small text is the kicker whether or not it is tracked: the first 2.0.0
+          // run set its definition terms in 16px caps at 0.03em and slipped under the old
+          // 15px-and-0.05em test. Buttons and links are exempt; a label is not a control.
+          // Uppercase on anything that is not a heading or a control is a label; the first
+          // 2.0.0 run set its definition terms in 28px condensed caps, which reads as 16px.
+          (t.textTransform === "uppercase" && t.fontSize < 32 && !/^(A|BUTTON|H[1-6])$/i.test(t.tag)) ||
+          // or typed in capitals outright: six or more letters, none lowercase
+          (t.fontSize < 32 && !/^(A|BUTTON|H[1-6])$/i.test(t.tag) && (t.ownText.match(/[A-Z]/g) ?? []).length >= 6 && !/[a-z]/.test(t.ownText)) ||
           /small-caps|all-small-caps|petite-caps/.test(t.fontVariant),
       )
       .map((t) => `${t.tag.toLowerCase()} "${t.ownText}"`),

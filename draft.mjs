@@ -60,8 +60,13 @@ or feature cards under the hero fail the gate. Set max-width in ch on p, li, dd
 and figcaption only, never on a wrapper: the wrapper is the grid, and a page
 whose sections all sit in one narrow left column with a dead band beside it
 fails. Never text-transform: uppercase with letter-spacing on small text, never
-font-variant: small-caps, never a numbered prefix on a heading. The theme the
+font-variant: small-caps, never a numbered prefix on a heading, and never
+uppercase on any text under 20px except inside a button or a link. The theme the
 direction names is checked on the render: a light page is mostly light bands.
+Never draw a decorative block: no repeating-linear-gradient mesh, no pattern,
+no texture, no empty tinted box standing in for a photograph. A split section's
+other half is a photograph from the brief, a figure built from the brief's
+numbers, or type. If there is nothing to put there, the section is not split.
 
 Output only the HTML document. No markdown fences, no commentary before or
 after the doctype.

@@ -38,6 +38,12 @@ order, section widths, alignment, density and where each photograph sits.
 You MUST keep the palette, both typefaces, every sentence of copy, the
 section content, and every {{IMAGE: ...}} description character for
 character (a reworded description is billed as a new photograph).
+A text block whose ink ends before two thirds of the width needs something real
+beside it (a photograph from the brief, a figure from the brief's numbers, a
+second column of type) or it is centred at a balanced measure; never fill the
+space with a pattern or an empty box. Every text and background pair you move
+must still clear WCAG AA 4.5:1: when text lands on a new ground, set its colour
+explicitly. The last two composition repairs both failed the contrast check.
 
 Judge findings, most serious first:
 ${judge.serious.map((f) => `- ${f.rule} [${f.viewport}px, section "${f.section}"]: ${f.reason}`).join("\n")}`;

@@ -20,11 +20,19 @@ const fixtureDir = join(evalsDir, "fixtures", "baseline");
 const BASELINE_HTML = readFileSync(join(fixtureDir, "page.html"), "utf8");
 const BASELINE_RUN = readFileSync(join(fixtureDir, "run.json"), "utf8");
 
-function stageRun(workspace, name, pageHtml) {
+// The fixture names itself: the golden page is always a real run, and its id is derived
+// from its own record rather than typed into the scorecard.
+const fixtureRecord = JSON.parse(BASELINE_RUN);
+const FIXTURE_ID = `${fixtureRecord.startedAt.replace(/[:.]/g, "-").slice(0, 19)}-${fixtureRecord.brief.brand
+  .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+
+// A mutation may patch the run record as well as the page: theme-mode is a comparison
+// between the direction on record and the render, so its defect lives in run.json.
+function stageRun(workspace, name, pageHtml, patchRun = null) {
   const runDir = join(workspace, name);
   mkdirSync(runDir, { recursive: true });
   writeFileSync(join(runDir, "page.html"), pageHtml);
-  writeFileSync(join(runDir, "run.json"), BASELINE_RUN);
+  writeFileSync(join(runDir, "run.json"), patchRun ? JSON.stringify(patchRun(JSON.parse(BASELINE_RUN))) : BASELINE_RUN);
   return runDir;
 }
 
@@ -50,7 +58,7 @@ async function scoreMutation(workspace, mutation) {
   if (mutated === BASELINE_HTML) {
     throw new Error(`mutation ${mutation.id} changed nothing`);
   }
-  const checks = await deterministicGate(stageRun(workspace, mutation.id, mutated));
+  const checks = await deterministicGate(stageRun(workspace, mutation.id, mutated, mutation.run ?? null));
   const failed = failedRules(checks);
   return {
     id: mutation.id,
@@ -80,7 +88,7 @@ function renderScorecard(results) {
 Written by \`npm run evals\`. Do not edit by hand. CI regenerates it and fails on a diff,
 so this file and the code cannot drift apart.
 
-The golden page is a real run that passed 6/6 (\`2026-07-15T19-21-30-salcedo-systems\`).
+The golden page is a real run that passed the full gate (\`${FIXTURE_ID}\`).
 Each mutation injects exactly one defect into it and names the check that should fire.
 
 **Detection: ${mutations.filter((m) => m.detected).length}/${mutations.length} (${detectionRate}%).

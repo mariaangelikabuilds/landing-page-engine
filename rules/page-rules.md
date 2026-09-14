@@ -126,11 +126,13 @@ plus paragraph, repeated down the page, with a third of the viewport left empty.
   data-dense, at least one is generous and near-empty. Uniform vertical padding down the
   whole page is the rhythm tell in spacing form.
 - `no-decorative-labels` (gate): No tracked-out all-caps kicker labels, no small caps, no
-  numbered section prefixes, no decorative italic. Measured on the render: any visible
-  text under 15px set in uppercase with letter-spacing, any `font-variant: small-caps`,
-  or a heading beginning with a number and a separator fails. The page the owner called
-  generated on 2026-09-13 carried twelve small-caps labels and zero uppercase ones,
-  which is why small caps are named.
+  numbered section prefixes, no decorative italic. Measured on the render: uppercase
+  (by `text-transform` or typed in capitals) on any text under 32px that is not a
+  heading, a button or a link; any `font-variant: small-caps`; or a heading beginning
+  with a number and a separator. The page the owner called generated on 2026-09-13
+  carried twelve small-caps labels and zero uppercase ones, which is why small caps are
+  named; the first 2.0.0 run set its definition terms in 28px condensed capitals, which
+  read as a 16px kicker, which is why the size is generous and headings are exempt.
 - `theme-mode` (gate): The direction names light or dark from a physical scene, and the
   rendered page agrees: the mode is dark when sections with a background luminance under
   0.4 cover more than half the section area. A "light" direction rendered as a dark hero

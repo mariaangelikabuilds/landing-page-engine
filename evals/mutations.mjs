@@ -155,6 +155,82 @@ export const MUTATIONS = [
           '<p class="qa-rm">Backups run nightly at 22:00.</p>',
       ),
   },
+  // Composition gates, rules 2.0.0. Each injects one defect the rendered-ink metrics in
+  // qa-composition.mjs must catch, and nothing else may fire.
+  {
+    id: "long-measure",
+    rule: "type-measure",
+    defect: "a paragraph allowed to run the full viewport width, far past 80 characters a line",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(
+        pageHtml,
+        `<p style="max-width:none;width:100%;padding:0;margin:0">${"Backups run every night after the office closes and copies go to two places so that one fire or one outage cannot take both. ".repeat(4)}</p>`,
+      ),
+  },
+  {
+    id: "flat-type-scale",
+    rule: "type-scale",
+    defect: "every heading forced to body size, so the page has no scale",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(pageHtml, "<style>h1,h2,h3,h4,h5,h6{font-size:18px!important}</style>"),
+  },
+  {
+    id: "tracked-caps-label",
+    rule: "no-decorative-labels",
+    defect: "a small tracked-out all-caps label, the eyebrow kicker",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(
+        pageHtml,
+        '<p style="text-transform:uppercase;letter-spacing:.14em;font-size:12px">Nightly backups</p>',
+      ),
+  },
+  {
+    id: "small-caps-label",
+    rule: "no-decorative-labels",
+    defect: "a label set in small caps, the same kicker in a serif costume",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(pageHtml, '<p style="font-variant:small-caps">Nightly backups</p>'),
+  },
+  {
+    id: "numbered-heading",
+    rule: "no-decorative-labels",
+    defect: "a section heading prefixed with a number and a separator",
+    apply: (pageHtml) => {
+      if (!/<main[^>]*>/i.test(pageHtml)) throw new Error("fixture has no <main> to inject into");
+      return pageHtml.replace(/(<main[^>]*>)/i, "$1<h2>01. What actually happens</h2>");
+    },
+  },
+  {
+    id: "no-hero-cta",
+    rule: "hero-cta",
+    defect: "every call to action pushed below the fold at both viewports, so the first screen sells nothing",
+    apply: (pageHtml) =>
+      injectBeforeBodyEnd(pageHtml, "<style>main{padding-top:1100px!important}</style>"),
+  },
+  {
+    id: "two-hero-ctas",
+    rule: "hero-cta",
+    defect: "a second call to action above the fold, the hedge the hero rule refuses",
+    apply: (pageHtml) => {
+      const email = pageHtml.match(/href="mailto:([^"?]+)"/i)?.[1];
+      if (!email) throw new Error("fixture has no mailto: href to duplicate");
+      if (!/<main[^>]*>/i.test(pageHtml)) throw new Error("fixture has no <main> to inject into");
+      return pageHtml.replace(/(<main[^>]*>)/i, `$1<p><a href="mailto:${email}">${email}</a></p>`);
+    },
+  },
+  {
+    id: "theme-mode-flip",
+    rule: "theme-mode",
+    defect: "the direction on record says the opposite theme from the one the page renders",
+    apply: (pageHtml) => `${pageHtml}<!-- theme-mode-flip: page unchanged, run.json patched -->`,
+    run: (runRecord) => ({
+      ...runRecord,
+      direction: {
+        ...runRecord.direction,
+        theme: { ...runRecord.direction.theme, mode: runRecord.direction.theme.mode === "dark" ? "light" : "dark" },
+      },
+    }),
+  },
 ];
 
 // Defects the deterministic gate is known not to catch. These are not scored;
@@ -169,6 +245,14 @@ export const KNOWN_BLIND_SPOTS = [
     whyMissed:
       "checking a sentence against a brief is a judgement, not a comparison; nothing deterministic can decide it",
     caughtBy: "the advisory review pass, which is why that pass exists",
+  },
+  {
+    id: "composition-beyond-the-measurable",
+    defect:
+      "a page that is stranded in one column, or repeats one formula down the page, or wears the stock skeleton in a new dress, while clearing every measurable check",
+    whyMissed:
+      "the ink-based metrics catch what they name (a stranded section, a flat scale, a long measure, a missing call to action) and nothing else; whether a page is well composed is still a judgement",
+    caughtBy: "the composition judge, which looks at the rendered tiles and can buy two layout repairs, and never decides the verdict",
   },
 ];
 
