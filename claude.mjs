@@ -12,7 +12,9 @@ const PRICE_PER_MTOK = { input: 2, output: 10 };
 // Adaptive thinking bills at output price and was 70 to 95 percent of every stage's output
 // tokens on the 2026-08-17 runs. Effort is the lever; each stage carries its own default
 // and PAGE_ENGINE_EFFORT_<STAGE> overrides it for an A/B without touching code.
-const EFFORT = { direction: "high", draft: "high", review: "medium", judge: "medium" };
+// Draft A/B on 2026-09-14, same brief and rules: high spent 31k output tokens ($0.34 a
+// draft) and medium 13k ($0.15); the judge and the owner preferred the medium page.
+const EFFORT = { direction: "high", draft: "medium", review: "medium", judge: "medium" };
 const effortFor = (stage) => process.env[`PAGE_ENGINE_EFFORT_${stage.toUpperCase()}`] ?? EFFORT[stage];
 
 function apiKeyFromEnvFile() {

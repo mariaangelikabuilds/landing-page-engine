@@ -461,32 +461,53 @@ async function renderChecks(runDir, direction) {
       const restore = [root, document.body].map((el) => [el, el.getAttribute("style")]);
       for (const [el] of restore) el.style.setProperty("overflow-x", "visible", "important");
 
-      const rightEdges = [...document.body.querySelectorAll("*")]
-        .map((el) => Math.ceil(el.getBoundingClientRect().right))
-        .filter(Number.isFinite);
+      const elements = [...document.body.querySelectorAll("*")]
+        .map((el) => ({ el, right: Math.ceil(el.getBoundingClientRect().right) }))
+        .filter((e) => Number.isFinite(e.right));
+      const rightEdges = elements.map((e) => e.right);
       const contentWidth = Math.max(root.scrollWidth, ...rightEdges);
+      // The repair reads the details back; "393px too wide" three times in a row taught
+      // the drafter nothing. Name the outermost offenders so it can find them.
+      const name = (el) => `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/)[0] : ""}`;
+      const offenders = elements
+        .filter((e) => e.right > window.innerWidth && !elements.some((o) => o !== e && o.right === e.right && o.el.contains(e.el)))
+        .sort((a, b) => b.right - a.right)
+        .slice(0, 4)
+        .map((e) => `${name(e.el)} reaches ${e.right}px (${Math.ceil(e.el.getBoundingClientRect().width)}px wide)`);
 
       for (const [el, style] of restore) {
         if (style === null) el.removeAttribute("style");
         else el.setAttribute("style", style);
       }
-      return contentWidth - window.innerWidth;
+      return { px: contentWidth - window.innerWidth, offenders };
     });
 
     const checks = [
       {
         name: "no horizontal overflow at 375px",
         rule: "responsive",
-        pass: overflowPx <= 0,
-        details: overflowPx > 0 ? `page is ${overflowPx}px too wide` : "ok",
+        pass: overflowPx.px <= 0,
+        details: overflowPx.px > 0
+          ? `page is ${overflowPx.px}px too wide at 375: ${overflowPx.offenders.join("; ")}`
+          : "ok",
       },
       {
         name: "axe-core, no serious or critical violations",
         rule: "semantic-html / contrast-aa",
         pass: blockingFindings.length === 0,
+        // The repair reads these details back to the drafter, and "5 node(s)" gave it
+        // nothing to fix: two composition repairs in a row failed on contrast it could
+        // not locate. Name the nodes, the colours and the ratio.
         details: blockingFindings.length
           ? blockingFindings
-              .map((violation) => `${violation.id}: ${violation.nodes.length} node(s)`)
+              .map((violation) => {
+                const nodes = violation.nodes.slice(0, 6).map((node) => {
+                  const data = node.any?.[0]?.data ?? node.all?.[0]?.data ?? {};
+                  const colours = data.fgColor ? ` ${data.fgColor} on ${data.bgColor} = ${data.contrastRatio}:1, needs ${data.expectedContrastRatio ?? "4.5:1"}` : "";
+                  return `${node.target.join(" ")}${colours}`;
+                });
+                return `${violation.id}: ${violation.nodes.length} node(s): ${nodes.join(" | ")}`;
+              })
               .join("; ")
           : `ok (${axeFindings.passes.length} rules passed)`,
       },

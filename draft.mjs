@@ -55,7 +55,9 @@ darken the accent until it clears; when in doubt, use dark text on the accent.
 
 The art direction names the hero headline, the single call to action and the
 single proof element. Above the fold at 1440 there is exactly one link that is
-a call to action (mailto:, tel: or http). A second button, a subtext paragraph
+a call to action (mailto:, tel: or http), and it sits within the first 800px of
+the page at 1440, so the headline is at most three lines there: clamp the
+display size until the hero fits one screen. A second button, a subtext paragraph
 or feature cards under the hero fail the gate. Set max-width in ch on p, li, dd
 and figcaption only, never on a wrapper: the wrapper is the grid, and a page
 whose sections all sit in one narrow left column with a dead band beside it
@@ -63,6 +65,9 @@ fails. Never text-transform: uppercase with letter-spacing on small text, never
 font-variant: small-caps, never a numbered prefix on a heading, and never
 uppercase on any text under 20px except inside a button or a link. The theme the
 direction names is checked on the render: a light page is mostly light bands.
+A horizontal row of figures, columns or split content wraps or stacks below
+700px (grid with auto-fit and a minmax floor, or flex-wrap); never a fixed
+column count or a fixed pixel width that outruns a 375px viewport.
 Never draw a decorative block: no repeating-linear-gradient mesh, no pattern,
 no texture, no empty tinted box standing in for a photograph. A split section's
 other half is a photograph from the brief, a figure built from the brief's
